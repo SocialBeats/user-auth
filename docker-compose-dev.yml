@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-dev
     container_name: template
     environment:
       - MONGOURL=${MONGOURL}
@@ -54,6 +54,10 @@ services:
       - socialbeats-network
     ports:
       - "${PORT}:${PORT}"
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+    command: nodemon --watch /app --legacy-watch --polling-interval 1000 main.js
 
 volumes:
   mongo-data:
