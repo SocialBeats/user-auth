@@ -148,6 +148,20 @@ router.post('/login', async (req, res) => {
  *     responses:
  *       200:
  *         description: Nuevo access token generado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Mensaje de éxito
+ *                 accessToken:
+ *                   type: string
+ *                   description: Nuevo access token
+ *                 refreshToken:
+ *                   type: string
+ *                   description: Nuevo refresh token (rotado)
  *       401:
  *         description: Refresh token inválido o expirado
  */
@@ -166,6 +180,7 @@ router.post('/refresh', async (req, res) => {
     res.status(200).json({
       message: 'Token refreshed successfully',
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   } catch (error) {
     logger.error(`Token refresh error: ${error.message}`);

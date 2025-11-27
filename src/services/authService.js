@@ -75,8 +75,9 @@ export const loginUser = async (identifier, password) => {
 
 /**
  * Refresca el access token usando un refresh token válido
+ * Implementa rotación de refresh tokens con periodo de gracia
  * @param {string} refreshToken - Refresh token
- * @returns {Object} - Nuevo accessToken
+ * @returns {Object} - Nuevo accessToken y refreshToken
  */
 export const refreshAccessToken = async (refreshToken) => {
   // Validar el refresh token en Redis
@@ -93,12 +94,24 @@ export const refreshAccessToken = async (refreshToken) => {
     throw new Error('User not found');
   }
 
-  // Generar nuevo access token y almacenarlo en Redis
+  // Generar nuevo access token
   const accessToken = await tokenService.generateAndStoreAccessToken(user);
 
-  logger.info(`Access token refreshed for user: ${user.username}`);
+  // Rotar el refresh token (con periodo de gracia)
+  const newRefreshToken = await tokenService.rotateRefreshToken(
+    refreshToken,
+    tokenData
+  );
 
-  return { accessToken };
+  logger.info(
+    `Tokens refreshed and rotated for user: ${user.username}` +
+      (tokenData.isInGracePeriod ? ' (grace period)' : '')
+  );
+
+  return {
+    accessToken,
+    refreshToken: newRefreshToken.token,
+  };
 };
 
 /**
