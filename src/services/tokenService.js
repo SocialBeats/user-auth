@@ -12,6 +12,7 @@ const USER_TOKENS_PREFIX = 'user_tokens:';
 const ACCESS_TOKEN_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = parseInt(process.env.JWT_REFRESH_EXPIRY) || 7;
 const REFRESH_TOKEN_EXPIRY_SECONDS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60;
+const GRACE_PERIOD_SECONDS = 15; // Periodo de gracia para concurrencia
 
 /**
  * Convierte tiempo expresado como string (ej: '15m', '1h') a segundos
@@ -220,14 +221,60 @@ export const validateRefreshToken = async (token) => {
       return null;
     }
 
+    // 4. Verificar si está en periodo de gracia
+    const ttl = await redis.ttl(tokenKey);
+    const isInGracePeriod = ttl > 0 && ttl <= GRACE_PERIOD_SECONDS;
+
     return {
       ...tokenData,
       tokenId,
       token,
+      isInGracePeriod,
     };
   } catch (error) {
     logger.error(`Refresh token validation error: ${error.message}`);
     return null;
+  }
+};
+
+/**
+ * Rota un refresh token: reduce el TTL del viejo a periodo de gracia y genera uno nuevo
+ * @param {string} oldToken - Refresh token actual
+ * @param {Object} tokenData - Datos del token validado
+ * @returns {Promise<Object>} - Nuevo refresh token generado
+ */
+export const rotateRefreshToken = async (oldToken, tokenData) => {
+  const redis = getRedisClient();
+
+  try {
+    const { tokenId, userId, isInGracePeriod } = tokenData;
+
+    // Si ya está en periodo de gracia, solo advertir pero permitir uso
+    if (isInGracePeriod) {
+      logger.warn(
+        `Refresh token ${tokenId} is in grace period - allowing reuse`
+      );
+    } else {
+      // Reducir TTL del token viejo a periodo de gracia (15 segundos)
+      const tokenKey = `${REFRESH_TOKEN_PREFIX}${tokenId}`;
+      const tokenHashKey = `token_map:${oldToken}`;
+
+      await redis.expire(tokenKey, GRACE_PERIOD_SECONDS);
+      await redis.expire(tokenHashKey, GRACE_PERIOD_SECONDS);
+
+      logger.info(
+        `Refresh token ${tokenId} moved to grace period (${GRACE_PERIOD_SECONDS}s)`
+      );
+    }
+
+    // Generar nuevo refresh token
+    const newRefreshToken = await generateAndStoreRefreshToken(userId);
+
+    logger.info(`Refresh token rotated for user: ${userId}`);
+    return newRefreshToken;
+  } catch (error) {
+    logger.error(`Refresh token rotation error: ${error.message}`);
+    throw error;
   }
 };
 

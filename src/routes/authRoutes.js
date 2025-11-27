@@ -166,6 +166,7 @@ router.post('/refresh', async (req, res) => {
     res.status(200).json({
       message: 'Token refreshed successfully',
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   } catch (error) {
     logger.error(`Token refresh error: ${error.message}`);
