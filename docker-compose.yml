@@ -18,20 +18,20 @@ services:
   redis:
     restart: unless-stopped
     image: redis:7-alpine
-    container_name: redis
+    container_name: redis-auth
     networks:
       - socialbeats-network
     ports:
-      - "${REDIS_PORT}:6379"
+      - "6380:6379"
     volumes:
       - redis-data:/data
 
-  template:
+  auth-service:
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: template
+    container_name: auth-service
     environment:
       - MONGOURL=${MONGOURL}
       - MONGOADMIN=${MONGOADMIN}
@@ -61,4 +61,4 @@ volumes:
 
 networks:
   socialbeats-network:
-    driver: bridge
+    external: true
