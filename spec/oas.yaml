@@ -195,6 +195,20 @@ paths:
       responses:
         '200':
           description: Nuevo access token generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Mensaje de éxito
+                  accessToken:
+                    type: string
+                    description: Nuevo access token
+                  refreshToken:
+                    type: string
+                    description: Nuevo refresh token (rotado)
         '401':
           description: Refresh token inválido o expirado
   /api/v1/auth/logout:
