@@ -69,7 +69,6 @@ export const loginUser = async (identifier, password) => {
   return {
     accessToken,
     refreshToken: refreshToken.token,
-    user: user.toJSON(),
   };
 };
 
@@ -115,18 +114,29 @@ export const refreshAccessToken = async (refreshToken) => {
 };
 
 /**
- * Cierra sesión revocando el refresh token
+ * Cierra sesión revocando el refresh token y access token
  * @param {string} refreshToken - Refresh token a revocar
+ * @param {string} accessToken - Access token a revocar
  * @returns {boolean} - true si se revocó correctamente
  */
-export const logoutUser = async (refreshToken) => {
-  const success = await tokenService.revokeToken(refreshToken, 'refresh');
+export const logoutUser = async (refreshToken, accessToken) => {
+  const refreshSuccess = await tokenService.revokeToken(
+    refreshToken,
+    'refresh'
+  );
 
-  if (!success) {
+  if (!refreshSuccess) {
     throw new Error('Refresh token not found');
   }
 
-  logger.info(`User logged out, token revoked`);
+  // Revocar también el access token si se proporcionó
+  if (accessToken) {
+    await tokenService.revokeToken(accessToken, 'access');
+    logger.info(`User logged out, both tokens revoked`);
+  } else {
+    logger.info(`User logged out, refresh token revoked`);
+  }
+
   return true;
 };
 
