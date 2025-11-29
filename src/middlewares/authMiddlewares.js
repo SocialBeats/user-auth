@@ -34,7 +34,10 @@ const verifyToken = async (req, res, next) => {
 
   if (!token) {
     logger.warn(`Unauthenticated request to ${req.path}`);
-    return res.status(401).json({ message: 'Missing token' });
+    return res.status(401).json({
+      error: 'MISSING_TOKEN',
+      message: 'Missing token',
+    });
   }
 
   // Validar token usando Redis (verifica firma JWT y existencia en Redis)
@@ -42,7 +45,10 @@ const verifyToken = async (req, res, next) => {
 
   if (!tokenData) {
     logger.error(`Token validation failed for path: ${req.path}`);
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    return res.status(403).json({
+      error: 'TOKEN_EXPIRED_OR_INVALID',
+      message: 'Invalid or expired token',
+    });
   }
 
   // Adjuntar datos del usuario a la request

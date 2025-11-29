@@ -50,7 +50,8 @@ export const register = async (req, res) => {
 
     // Validación 4: Formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(trimmedEmail)) {
       return res.status(400).json({
         error: 'INVALID_EMAIL',
         message: 'Email format is invalid',

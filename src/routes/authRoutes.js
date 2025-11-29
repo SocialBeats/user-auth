@@ -27,12 +27,12 @@ const router = express.Router();
  *               username:
  *                 type: string
  *                 minLength: 3
- *                 description: Nombre de usuario (úninico, mínimo 3 caracteres)
+ *                 description: Nombre de usuario (único, mínimo 3 caracteres)
  *                 example: john_doe
  *               email:
  *                 type: string
  *                 format: email
- *                 description: Email del usuario (úninico)
+ *                 description: Email del usuario (único)
  *                 example: john@example.com
  *               password:
  *                 type: string
