@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './logger.js';
 import { connectDB } from './src/db.js';
+import { createRedisClient } from './src/config/redis.js';
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
 // import your routes here
@@ -36,6 +37,7 @@ export default app;
 
 if (process.env.NODE_ENV !== 'test') {
   await connectDB();
+  createRedisClient();
 
   app.listen(PORT, () => {
     logger.warn(`Using log level: ${process.env.LOG_LEVEL}`);
