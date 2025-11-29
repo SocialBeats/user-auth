@@ -21,6 +21,7 @@ export const requireRoles = (allowedRoles) => {
         'Role check failed: No user in request (missing authentication)'
       );
       return res.status(401).json({
+        error: 'AUTHENTICATION_REQUIRED',
         message: 'Authentication required',
       });
     }
@@ -29,6 +30,7 @@ export const requireRoles = (allowedRoles) => {
     if (!req.user.roles || !Array.isArray(req.user.roles)) {
       logger.warn(`Role check failed: User ${req.user.username} has no roles`);
       return res.status(403).json({
+        error: 'NO_ROLES_ASSIGNED',
         message: 'Access denied: No roles assigned',
       });
     }
@@ -42,7 +44,8 @@ export const requireRoles = (allowedRoles) => {
       logger.warn(
         `Access denied for user ${req.user.username} (roles: ${req.user.roles.join(', ')}) to resource requiring: ${allowedRoles.join(', ')}`
       );
-      return res.status(401).json({
+      return res.status(403).json({
+        error: 'INSUFFICIENT_PERMISSIONS',
         message: 'Unauthorized: Insufficient role',
         required: allowedRoles,
         current: req.user.roles,
