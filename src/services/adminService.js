@@ -73,7 +73,9 @@ export const updateUserByUsername = async (username, updateData) => {
         });
 
         await user.save();
-        return user;
+        // Re-query the updated user, excluding the password field
+        const updatedUser = await User.findOne({ username }, '-password');
+        return updatedUser;
     } catch (error) {
         logger.error(`Error updating user ${username}: ${error.message}`);
         throw error;
