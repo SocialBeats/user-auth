@@ -64,9 +64,12 @@ export const updateUserByUsername = async (username, updateData) => {
             throw new Error('User not found');
         }
 
+        // Whitelist of fields allowed to be updated
+        const allowedFields = ['email', 'username'];
         Object.keys(updateData).forEach((key) => {
-            // Simply update the field, ignoring password concerns as requested
-            user[key] = updateData[key];
+            if (allowedFields.includes(key)) {
+                user[key] = updateData[key];
+            }
         });
 
         await user.save();
