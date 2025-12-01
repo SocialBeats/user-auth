@@ -13,6 +13,10 @@ export const initAdmin = async () => {
         const email = process.env.DEFAULT_ADMIN_EMAIL;
         const password = process.env.DEFAULT_ADMIN_PASSWORD;
 
+        if (!username || !email || !password) {
+            logger.error('Missing required environment variables for default admin user. Please set DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL, and DEFAULT_ADMIN_PASSWORD.');
+            return;
+        }
         const admin = new User({
             username,
             email,
