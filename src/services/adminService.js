@@ -84,12 +84,23 @@ export const updateUserByUsername = async (username, updateData) => {
  */
 export const deleteUser = async (userId) => {
     try {
-        const user = await User.findByIdAndDelete(userId);
+        // First, find the user to check their role
+        const user = await User.findById(userId);
         if (!user) {
             throw new Error('User not found');
         }
+        // Check if the user is an admin
+        if (user.role === 'admin') {
+            // Count number of admins
+            const adminCount = await User.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                throw new Error('Cannot delete the last remaining admin user');
+            }
+        }
+        // Proceed to delete
+        const deletedUser = await User.findByIdAndDelete(userId);
         logger.info(`User deleted: ${user.username}`);
-        return user;
+        return deletedUser;
     } catch (error) {
         logger.error(`Error deleting user ${userId}: ${error.message}`);
         throw error;
