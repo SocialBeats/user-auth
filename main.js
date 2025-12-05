@@ -5,11 +5,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from './logger.js';
 import { connectDB } from './src/db.js';
+import { createRedisClient } from './src/config/redis.js';
+import { initAdmin } from './src/utils/initAdmin.js';
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
 // import your routes here
 import aboutRoutes from './src/routes/aboutRoutes.js';
 import healthRoutes from './src/routes/healthRoutes.js';
+import authRoutes from './src/routes/authRoutes.js';
+import adminRoutes from './src/routes/adminRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,12 +32,16 @@ app.use(verifyToken);
 // add your routes here like this:
 aboutRoutes(app);
 healthRoutes(app);
+authRoutes(app);
+adminRoutes(app);
 
 // Export app for tests. Do not remove this line
 export default app;
 
 if (process.env.NODE_ENV !== 'test') {
   await connectDB();
+  await initAdmin();
+  createRedisClient();
 
   app.listen(PORT, () => {
     logger.warn(`Using log level: ${process.env.LOG_LEVEL}`);

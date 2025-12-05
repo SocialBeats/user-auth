@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
 import logger from '../../logger.js';
+import * as tokenService from '../services/tokenService.js';
 
 const openPaths = [
   '/api/v1/docs/',
@@ -7,10 +7,22 @@ const openPaths = [
   '/api/v1/about',
   '/api/v1/changelog',
   '/api/v1/version',
+  '/api/v1/auth/register',
+  '/api/v1/auth/login',
+  '/api/v1/auth/refresh',
+  '/api/v1/auth/logout',
 ];
 
-const verifyToken = (req, res, next) => {
-  if (openPaths.some((path) => req.path.startsWith(path))) {
+const verifyToken = async (req, res, next) => {
+  // Verificar rutas abiertas con coincidencia exacta o prefijo
+  const isOpenPath = openPaths.some((path) => {
+    if (path.endsWith('/')) {
+      return req.path.startsWith(path);
+    }
+    return req.path === path;
+  });
+
+  if (isOpenPath) {
     return next();
   } else if (!req.path.startsWith('/api/v')) {
     return res
@@ -22,15 +34,29 @@ const verifyToken = (req, res, next) => {
 
   if (!token) {
     logger.warn(`Unauthenticated request to ${req.path}`);
-    return res.status(401).json({ message: 'Missing token' });
+    return res.status(401).json({
+      error: 'MISSING_TOKEN',
+      message: 'Missing token',
+    });
   }
 
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    next();
-  } catch {
-    return res.status(403).json({ message: 'Invalid or expired token' });
+  // Validar token usando Redis (verifica firma JWT y existencia en Redis)
+  const tokenData = await tokenService.validateAccessToken(token);
+
+  if (!tokenData) {
+    logger.error(`Token validation failed for path: ${req.path}`);
+    return res.status(403).json({
+      error: 'TOKEN_EXPIRED_OR_INVALID',
+      message: 'Invalid or expired token',
+    });
   }
+
+  // Adjuntar datos del usuario a la request
+  req.user = tokenData;
+  logger.info(
+    `Token validated successfully for user: ${tokenData.username || tokenData.id}`
+  );
+  next();
 };
 
 export default verifyToken;

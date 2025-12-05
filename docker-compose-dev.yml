@@ -4,7 +4,7 @@ services:
   mongodb:
     restart: unless-stopped
     image: mongo:latest
-    container_name: mongodb-auth
+    container_name: mongodb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGOADMIN}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGOPASS}
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-dev
     container_name: auth-service
     environment:
       - MONGOURL=${MONGOURL}
@@ -54,6 +54,10 @@ services:
       - socialbeats-network
     ports:
       - "${PORT}:${PORT}"
+    volumes:
+      - ./:/app:cached
+      - /app/node_modules
+    command: nodemon --watch /app --legacy-watch --polling-interval 1000 main.js
 
 volumes:
   mongo-data:
