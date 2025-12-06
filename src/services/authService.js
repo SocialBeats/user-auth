@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
 import * as tokenService from './tokenService.js';
+import { createProfile } from './profileService.js';
 
 /**
  * Registra un nuevo usuario
@@ -31,6 +32,22 @@ export const registerUser = async (userData) => {
     password,
     roles: roles || ['beatmaker'],
   });
+
+  // Crear perfil asociado al usuario
+  try {
+    await createProfile({
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+    });
+  } catch (profileError) {
+    // Si falla la creación del perfil, eliminar el usuario para mantener consistencia
+    await User.findByIdAndDelete(user._id);
+    logger.error(
+      `Failed to create profile for user ${username}, rolling back user creation`
+    );
+    throw new Error('Failed to create user profile');
+  }
 
   logger.info(`New user registered: ${username}`);
   return user;
@@ -117,9 +134,25 @@ export const refreshAccessToken = async (refreshToken) => {
  * Cierra sesión revocando el refresh token y access token
  * @param {string} refreshToken - Refresh token a revocar
  * @param {string} accessToken - Access token a revocar
+ * @param {string} requestUserId - ID del usuario que hace la petición
  * @returns {boolean} - true si se revocó correctamente
  */
-export const logoutUser = async (refreshToken, accessToken) => {
+export const logoutUser = async (refreshToken, accessToken, requestUserId) => {
+  // Validar que el token pertenezca al usuario que hace la petición
+  const tokenData = await tokenService.validateRefreshToken(refreshToken);
+
+  if (!tokenData) {
+    throw new Error('Refresh token not found');
+  }
+
+  // Verificar que el token pertenece al usuario autenticado
+  if (tokenData.userId !== requestUserId) {
+    logger.warn(
+      `User ${requestUserId} attempted to logout token belonging to ${tokenData.userId}`
+    );
+    throw new Error('Token does not belong to user');
+  }
+
   const refreshSuccess = await tokenService.revokeToken(
     refreshToken,
     'refresh'
@@ -132,9 +165,9 @@ export const logoutUser = async (refreshToken, accessToken) => {
   // Revocar también el access token si se proporcionó
   if (accessToken) {
     await tokenService.revokeToken(accessToken, 'access');
-    logger.info(`User logged out, both tokens revoked`);
+    logger.info(`User ${requestUserId} logged out, both tokens revoked`);
   } else {
-    logger.info(`User logged out, refresh token revoked`);
+    logger.info(`User ${requestUserId} logged out, refresh token revoked`);
   }
 
   return true;

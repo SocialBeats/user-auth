@@ -136,7 +136,53 @@ export const generateAndStoreRefreshToken = async (userId) => {
 };
 
 /**
- * Valida un Access Token verificando su existencia en Redis
+ * Valida un Access Token verificando SOLO su existencia en Redis (sin verificar firma JWT)
+ * Usar cuando el gateway ya verificó la firma
+ * @param {string} token - Access token a validar
+ * @returns {Promise<Object|null>} - Datos del token si existe en Redis, null si no
+ */
+export const validateAccessTokenRedisOnly = async (token) => {
+  const redis = getRedisClient();
+
+  try {
+    // Verificar que el token existe en Redis (no ha sido revocado)
+    const tokenHashKey = `token_map:${token}`;
+    const tokenId = await redis.get(tokenHashKey);
+
+    if (!tokenId) {
+      logger.warn('Token not found in Redis - may have been revoked');
+      return null;
+    }
+
+    // Obtener datos del token de Redis
+    const tokenKey = `${ACCESS_TOKEN_PREFIX}${tokenId}`;
+    const tokenDataStr = await redis.get(tokenKey);
+
+    if (!tokenDataStr) {
+      logger.warn('Token data not found in Redis');
+      return null;
+    }
+
+    const tokenData = JSON.parse(tokenDataStr);
+
+    // Decodificar JWT SIN verificar (ya lo hizo el gateway)
+    const decoded = jwt.decode(token);
+
+    // Retornar datos combinados
+    return {
+      ...decoded,
+      tokenId,
+      ...tokenData,
+    };
+  } catch (error) {
+    logger.error(`Token validation error: ${error.message}`);
+    return null;
+  }
+};
+
+/**
+ * Valida un Access Token verificando firma JWT Y existencia en Redis
+ * Usar para acceso directo al microservicio (sin gateway)
  * @param {string} token - Access token a validar
  * @returns {Promise<Object|null>} - Datos del token si es válido, null si no
  */

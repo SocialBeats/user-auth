@@ -248,7 +248,18 @@ export const logout = async (req, res) => {
       });
     }
 
-    await authService.logoutUser(refreshToken, accessToken);
+    // Validación 4: El usuario autenticado debe ser el dueño del token
+    // Extraer userId del refreshToken para verificar propiedad
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Authentication required',
+      });
+    }
+
+    // Intentar hacer logout - el servicio validará que el token pertenezca al usuario
+    await authService.logoutUser(refreshToken, accessToken, userId);
 
     res.status(200).json({
       message: 'Logout successful',
@@ -261,6 +272,14 @@ export const logout = async (req, res) => {
       return res.status(404).json({
         error: 'TOKEN_NOT_FOUND',
         message: 'Refresh token not found',
+      });
+    }
+
+    // Error de propiedad del token
+    if (error.message === 'Token does not belong to user') {
+      return res.status(403).json({
+        error: 'FORBIDDEN',
+        message: 'You can only logout your own tokens',
       });
     }
 

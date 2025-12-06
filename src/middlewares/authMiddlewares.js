@@ -10,7 +10,7 @@ const openPaths = [
   '/api/v1/auth/register',
   '/api/v1/auth/login',
   '/api/v1/auth/refresh',
-  '/api/v1/auth/logout',
+  '/api/v1/auth/validate-token', // Para que el gateway pueda validar tokens
 ];
 
 const verifyToken = async (req, res, next) => {
@@ -24,12 +24,43 @@ const verifyToken = async (req, res, next) => {
 
   if (isOpenPath) {
     return next();
-  } else if (!req.path.startsWith('/api/v')) {
+  }
+
+  if (!req.path.startsWith('/api/v')) {
     return res
       .status(400)
       .json({ message: 'You must specify the API version, e.g. /api/v1/...' });
   }
 
+  // Prioridad 1: Headers del Gateway (cuando viene a través del gateway)
+  const gatewayAuth = req.headers['x-gateway-authenticated'];
+  const userId = req.headers['x-user-id'];
+  const username = req.headers['x-username'];
+  const roles = req.headers['x-roles'];
+
+  if (gatewayAuth === 'true' && userId) {
+    // Request validado por el gateway - construir usuario desde headers
+    // Parsear roles: el gateway los envía como string separado por comas
+    let userRoles = [];
+    if (roles) {
+      userRoles =
+        typeof roles === 'string'
+          ? roles.split(',').map((r) => r.trim())
+          : roles;
+    }
+
+    req.user = {
+      id: userId,
+      username: username || userId,
+      roles: userRoles,
+    };
+    logger.info(
+      `Request authenticated via gateway for user: ${req.user.username} (roles: ${userRoles.join(', ')})`
+    );
+    return next();
+  }
+
+  // Prioridad 2: Token JWT directo (acceso directo al microservicio, sin gateway)
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {

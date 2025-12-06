@@ -1,5 +1,6 @@
 import express from 'express';
 import * as authController from '../controllers/authController.js';
+import * as tokenValidationController from '../controllers/tokenValidationController.js';
 import {
   requireAdmin,
   requireBeatmaker,
@@ -317,6 +318,50 @@ router.post('/logout', authController.logout);
  *         description: No autenticado
  */
 router.post('/revoke-all', authController.revokeAll);
+
+/**
+ * @swagger
+ * /api/v1/auth/validate-token:
+ *   post:
+ *     summary: Valida un access token contra Redis (usado por API Gateway)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Access token a validar
+ *     responses:
+ *       200:
+ *         description: Resultado de la validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ */
+router.post('/validate-token', tokenValidationController.validateToken);
 
 export default (app) => {
   app.use('/api/v1/auth', router);
