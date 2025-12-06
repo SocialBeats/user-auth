@@ -14,6 +14,7 @@ import aboutRoutes from './src/routes/aboutRoutes.js';
 import healthRoutes from './src/routes/healthRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
+import profileRoutes from './src/routes/profileRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ aboutRoutes(app);
 healthRoutes(app);
 authRoutes(app);
 adminRoutes(app);
+profileRoutes(app);
 
 // Export app for tests. Do not remove this line
 export default app;

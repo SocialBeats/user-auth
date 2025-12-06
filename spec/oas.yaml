@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Microservice API
+  title: Users and Authentication Microservice
   version: unknown
   description: This is an OAS description of this Microservice REST API
 servers:
@@ -118,6 +118,117 @@ paths:
                 example: >-
                   There was an error retrieving API release notes: ENOENT: no
                   such file or directory, open 'CHANGELOG.md'
+  /api/v1/admin/create-admin:
+    post:
+      summary: Create a new admin user
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Admin created successfully
+        '403':
+          description: Forbidden (requires admin role)
+  /api/v1/admin/users:
+    get:
+      summary: List all users
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users
+  /api/v1/admin/users/username/{username}:
+    get:
+      summary: Get a user by username
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+        '404':
+          description: User not found
+  /api/v1/admin/users/{id}:
+    get:
+      summary: Get a user by ID
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+        '404':
+          description: User not found
+    delete:
+      summary: Delete a user
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+  /api/v1/admin/users/{username}:
+    put:
+      summary: Update a user by username
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated successfully
   /api/v1/auth/register:
     post:
       summary: Registra un nuevo usuario como beatmaker
@@ -421,6 +532,46 @@ paths:
           description: Todos los tokens revocados
         '401':
           description: No autenticado
+  /api/v1/auth/validate-token:
+    post:
+      summary: Valida un access token contra Redis (usado por API Gateway)
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: Access token a validar
+      responses:
+        '200':
+          description: Resultado de la validación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: string
   /api/v1/health:
     get:
       tags:
@@ -457,4 +608,128 @@ paths:
                   db:
                     type: string
                     example: connected
+  /api/v1/profile/me:
+    get:
+      tags:
+        - Profile
+      summary: Obtener mi perfil
+      description: Obtiene el perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  about_me:
+                    type: string
+                  avatar:
+                    type: string
+                  full_name:
+                    type: string
+                  contact:
+                    type: object
+                  studies:
+                    type: array
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                  certifications:
+                    type: array
+        '401':
+          description: No autenticado
+        '404':
+          description: Perfil no encontrado
+    put:
+      tags:
+        - Profile
+      summary: Actualizar mi perfil
+      description: Actualiza el perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                about_me:
+                  type: string
+                avatar:
+                  type: string
+                full_name:
+                  type: string
+                contact:
+                  type: object
+                  properties:
+                    phone:
+                      type: string
+                    city:
+                      type: string
+                    country:
+                      type: string
+                    website:
+                      type: string
+                    social_media:
+                      type: object
+                studies:
+                  type: array
+                tags:
+                  type: array
+                  items:
+                    type: string
+                certifications:
+                  type: array
+      responses:
+        '200':
+          description: Perfil actualizado exitosamente
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '404':
+          description: Perfil no encontrado
+    delete:
+      tags:
+        - Profile
+      summary: Eliminar mi perfil
+      description: Elimina el perfil del usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil eliminado exitosamente
+        '401':
+          description: No autenticado
+        '404':
+          description: Perfil no encontrado
+  /api/v1/profile/{username}:
+    get:
+      tags:
+        - Profile
+      summary: Obtener perfil por username
+      description: Obtiene el perfil público de un usuario por su username
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: Username del usuario
+      responses:
+        '200':
+          description: Perfil obtenido exitosamente
+        '404':
+          description: Perfil no encontrado
 tags: []

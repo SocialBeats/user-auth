@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
 import * as tokenService from './tokenService.js';
+import { createProfile } from './profileService.js';
 
 /**
  * Registra un nuevo usuario
@@ -31,6 +32,22 @@ export const registerUser = async (userData) => {
     password,
     roles: roles || ['beatmaker'],
   });
+
+  // Crear perfil asociado al usuario
+  try {
+    await createProfile({
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+    });
+  } catch (profileError) {
+    // Si falla la creación del perfil, eliminar el usuario para mantener consistencia
+    logger.error(
+      `Failed to create profile for user ${username}, rolling back user creation`
+    );
+    await User.findByIdAndDelete(user._id);
+    throw new Error('Failed to create user profile');
+  }
 
   logger.info(`New user registered: ${username}`);
   return user;
