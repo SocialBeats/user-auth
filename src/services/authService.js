@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
 import * as tokenService from './tokenService.js';
+import { createProfile } from './profileService.js';
 
 /**
  * Registra un nuevo usuario
@@ -31,6 +32,22 @@ export const registerUser = async (userData) => {
     password,
     roles: roles || ['beatmaker'],
   });
+
+  // Crear perfil asociado al usuario
+  try {
+    await createProfile({
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+    });
+  } catch (profileError) {
+    // Si falla la creación del perfil, eliminar el usuario para mantener consistencia
+    logger.error(
+      `Failed to create profile for user ${username}, rolling back user creation`
+    );
+    await User.findByIdAndDelete(user._id);
+    throw new Error('Failed to create user profile');
+  }
 
   logger.info(`New user registered: ${username}`);
   return user;
@@ -116,10 +133,31 @@ export const refreshAccessToken = async (refreshToken) => {
 /**
  * Cierra sesión revocando el refresh token y access token
  * @param {string} refreshToken - Refresh token a revocar
- * @param {string} accessToken - Access token a revocar
+ * @param {string} accessToken - Access token a revocar (opcional, puede estar caducado)
  * @returns {boolean} - true si se revocó correctamente
  */
 export const logoutUser = async (refreshToken, accessToken) => {
+  // Intentar revocar access token primero (best effort - puede estar caducado)
+  if (accessToken) {
+    try {
+      const accessSuccess = await tokenService.revokeToken(
+        accessToken,
+        'access'
+      );
+      if (accessSuccess) {
+        logger.info('Access token revoked successfully');
+      } else {
+        logger.warn('Access token not found or already expired/revoked');
+      }
+    } catch (error) {
+      // No es crítico si falla - puede estar caducado
+      logger.warn(
+        `Failed to revoke access token (non-critical): ${error.message}`
+      );
+    }
+  }
+
+  // Revocar refresh token (este es el crítico)
   const refreshSuccess = await tokenService.revokeToken(
     refreshToken,
     'refresh'
@@ -129,14 +167,7 @@ export const logoutUser = async (refreshToken, accessToken) => {
     throw new Error('Refresh token not found');
   }
 
-  // Revocar también el access token si se proporcionó
-  if (accessToken) {
-    await tokenService.revokeToken(accessToken, 'access');
-    logger.info(`User logged out, both tokens revoked`);
-  } else {
-    logger.info(`User logged out, refresh token revoked`);
-  }
-
+  logger.info('User logged out successfully');
   return true;
 };
 

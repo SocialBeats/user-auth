@@ -144,5 +144,5 @@ router.put('/users/:username', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
 
 export default (app) => {
-    app.use('/api/v1/admin', router);
+  app.use('/api/v1/admin', router);
 };

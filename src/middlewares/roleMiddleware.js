@@ -26,8 +26,10 @@ export const requireRoles = (allowedRoles) => {
       });
     }
 
-    // Verificar que el usuario tenga roles
-    if (!req.user.roles || !Array.isArray(req.user.roles)) {
+    // Verificar que el usuario tenga roles y convertir a array si es necesario
+    let userRoles = req.user.roles;
+
+    if (!userRoles) {
       logger.warn(`Role check failed: User ${req.user.username} has no roles`);
       return res.status(403).json({
         error: 'NO_ROLES_ASSIGNED',
@@ -35,26 +37,41 @@ export const requireRoles = (allowedRoles) => {
       });
     }
 
+    // Convertir a array si viene como string (por si acaso)
+    if (typeof userRoles === 'string') {
+      userRoles = userRoles.split(',').map((r) => r.trim());
+    }
+
+    if (!Array.isArray(userRoles)) {
+      logger.warn(
+        `Role check failed: User ${req.user.username} has invalid roles format`
+      );
+      return res.status(403).json({
+        error: 'NO_ROLES_ASSIGNED',
+        message: 'Access denied: Invalid roles format',
+      });
+    }
+
     // Verificar si el usuario tiene al menos uno de los roles permitidos
-    const hasRequiredRole = req.user.roles.some((role) =>
+    const hasRequiredRole = userRoles.some((role) =>
       allowedRoles.includes(role)
     );
 
     if (!hasRequiredRole) {
       logger.warn(
-        `Access denied for user ${req.user.username} (roles: ${req.user.roles.join(', ')}) to resource requiring: ${allowedRoles.join(', ')}`
+        `Access denied for user ${req.user.username} (roles: ${userRoles.join(', ')}) to resource requiring: ${allowedRoles.join(', ')}`
       );
       return res.status(403).json({
         error: 'INSUFFICIENT_PERMISSIONS',
         message: 'Unauthorized: Insufficient role',
         required: allowedRoles,
-        current: req.user.roles,
+        current: userRoles,
       });
     }
 
     // Usuario tiene permisos, continuar
     logger.info(
-      `Access granted to ${req.user.username} with role(s): ${req.user.roles.join(', ')}`
+      `Access granted to ${req.user.username} with role(s): ${userRoles.join(', ')}`
     );
     next();
   };
