@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
+import { deleteProfile } from './profileService.js';
 
 /**
  * Get all users from the database
@@ -102,7 +103,18 @@ export const deleteUser = async (userId) => {
         throw new Error('Cannot delete the last remaining admin user');
       }
     }
-    // Proceed to delete
+
+    // Delete associated profile to maintain data consistency
+    try {
+      await deleteProfile(userId);
+    } catch (profileError) {
+      // Log but don't fail if profile doesn't exist
+      logger.warn(
+        `Profile deletion failed for user ${userId}: ${profileError.message}`
+      );
+    }
+
+    // Proceed to delete user
     const deletedUser = await User.findByIdAndDelete(userId);
     logger.info(`User deleted: ${user.username}`);
     return deletedUser;
