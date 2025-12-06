@@ -10,6 +10,7 @@ const openPaths = [
   '/api/v1/auth/register',
   '/api/v1/auth/login',
   '/api/v1/auth/refresh',
+  '/api/v1/auth/logout', // Logout público (RFC 7009 - best effort revocation)
   '/api/v1/auth/validate-token', // Para que el gateway pueda validar tokens
 ];
 
@@ -41,13 +42,10 @@ const verifyToken = async (req, res, next) => {
   if (gatewayAuth === 'true' && userId) {
     // Request validado por el gateway - construir usuario desde headers
     // Parsear roles: el gateway los envía como string separado por comas
-    let userRoles = [];
-    if (roles) {
-      userRoles =
-        typeof roles === 'string'
-          ? roles.split(',').map((r) => r.trim())
-          : roles;
-    }
+    const userRoles =
+      typeof roles === 'string'
+        ? roles.split(',').map((r) => r.trim())
+        : roles || [];
 
     req.user = {
       id: userId,
