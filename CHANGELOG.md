@@ -1,3 +1,34 @@
+# Release v0.0.2
+
+## Features
+- feat: add cascade deletion for Profile when User is deleted
+- feat: preliminary profile model
+
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+No fixes added.
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #24 from SocialBeats/develop
+- chore: prepare .env for infrastructure
+- refactor: handle access token if it expired when logging out
+- Merge pull request #22 from SocialBeats/feat/profile-model
+- Merge branch 'feat/profile-model' of https://github.com/SocialBeats/user-auth into feat/profile-model
+- refactor: rollback to public logout route
+- Merge pull request #23 from SocialBeats/copilot/sub-pr-22
+- refactor: check profile existence before deletion
+- Initial plan
+- Update src/routes/profileRoutes.js
+- refactor: linting warnings
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.1...v0.0.2).
+
 # Release v0.0.1
 
 ## Features
