@@ -1,6 +1,6 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
-import { deleteProfile } from './profileService.js';
+import { deleteProfile, getProfileByUserId } from './profileService.js';
 
 /**
  * Get all users from the database
@@ -106,9 +106,13 @@ export const deleteUser = async (userId) => {
 
     // Delete associated profile to maintain data consistency
     try {
-      await deleteProfile(userId);
+      const profile = await getProfileByUserId(userId);
+      if (profile) {
+        await deleteProfile(userId);
+        logger.info(`Profile deleted for user ${userId}`);
+      }
     } catch (profileError) {
-      // Log but don't fail if profile doesn't exist
+      // Log warning but don't fail the user deletion
       logger.warn(
         `Profile deletion failed for user ${userId}: ${profileError.message}`
       );
