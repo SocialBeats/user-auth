@@ -151,7 +151,7 @@ router.delete('/me', profileController.deleteMyProfile);
  *       404:
  *         description: Perfil no encontrado
  */
-router.get('/:username', requireAdmin, profileController.getProfileByUsername);
+router.get('/:username', profileController.getProfileByUsername);
 
 export default (app) => {
   app.use('/api/v1/profile', router);
