@@ -2,13 +2,22 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
 
+// Tipos de archivo permitidos por categoría
+const ALLOWED_TYPES = {
+  avatar: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  certification: ['application/pdf'],
+};
+
 /**
  * Genera una URL prefirmada para subir archivos directamente a S3
- * @route GET /api/upload/presigned-url
+ * @route GET /api/v1/auth/upload/presigned-url
+ * @query fileName - Nombre del archivo
+ * @query fileType - Tipo MIME del archivo
+ * @query category - Categoría: 'avatar' o 'certification' (default: 'avatar')
  */
 export const getPresignedUrl = async (req, res) => {
   try {
-    const { fileName, fileType } = req.query;
+    const { fileName, fileType, category = 'avatar' } = req.query;
 
     if (!fileName || !fileType) {
       return res.status(400).json({
@@ -16,25 +25,32 @@ export const getPresignedUrl = async (req, res) => {
       });
     }
 
-    // Validar tipo de archivo (solo imágenes)
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(fileType)) {
+    // Validar categoría
+    if (!ALLOWED_TYPES[category]) {
       return res.status(400).json({
-        error:
-          'Tipo de archivo no permitido. Solo se permiten imágenes (jpeg, png, gif, webp)',
+        error: 'Categoría no válida. Use: avatar, certification',
       });
     }
 
-    // Generar nombre único: timestamp + nombre sanitizado
+    // Validar tipo de archivo según categoría
+    const allowedTypes = ALLOWED_TYPES[category];
+    if (!allowedTypes.includes(fileType)) {
+      return res.status(400).json({
+        error: `Tipo de archivo no permitido para ${category}. Permitidos: ${allowedTypes.join(', ')}`,
+      });
+    }
+
+    // Generar nombre único según categoría
     const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueFileName = `avatars/${Date.now()}-${sanitizedName}`;
+    const folder = category === 'certification' ? 'certifications' : 'avatars';
+    const uniqueFileName = `${folder}/${Date.now()}-${sanitizedName}`;
 
     // Crear comando PUT con ACL público
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: uniqueFileName,
       ContentType: fileType,
-      ACL: 'public-read', // ¡Asegúrate de que esto esté presente!
+      ACL: 'public-read',
     });
 
     // Generar URL prefirmada (expira en 60 segundos)

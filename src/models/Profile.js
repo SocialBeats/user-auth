@@ -63,8 +63,20 @@ const profileSchema = new mongoose.Schema(
       },
     },
     certifications: {
-      type: mongoose.Schema.Types.Mixed,
+      type: [
+        {
+          title: { type: String, required: true, maxlength: 100 },
+          url: { type: String, required: true },
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
       default: [],
+      validate: {
+        validator: function (certs) {
+          return certs.length <= 20;
+        },
+        message: 'Cannot have more than 20 certifications',
+      },
     },
   },
   {
