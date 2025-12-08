@@ -21,7 +21,7 @@ export const getPresignedUrl = async (req, res) => {
 
     if (!fileName || !fileType) {
       return res.status(400).json({
-        error: 'Faltan parámetros: fileName y fileType son requeridos',
+        error: 'Missing parameters: fileName and fileType are required',
       });
     }
 
@@ -41,7 +41,11 @@ export const getPresignedUrl = async (req, res) => {
     }
 
     // Generar nombre único según categoría
-    const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const sanitizedName = fileName
+      .replace(/\.\./g, '') // Remove path traversal attempts
+      .replace(/^\.+/, '') // Remove leading dots
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace disallowed chars
+      .substring(0, 255); // Limit length
     const folder = category === 'certification' ? 'certifications' : 'avatars';
     const uniqueFileName = `${folder}/${Date.now()}-${sanitizedName}`;
 

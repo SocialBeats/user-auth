@@ -5,10 +5,10 @@ const router = Router();
 
 /**
  * @route GET /presigned-url
- * @desc Obtener URL prefirmada para subir archivo a S3
- * @access Private (requiere autenticación - ya validado por verifyToken global)
- * @query fileName - Nombre del archivo
- * @query fileType - Tipo MIME del archivo
+ * @desc Get presigned URL to upload file to S3
+ * @access Private (requires authentication - already validated by global verifyToken)
+ * @query fileName - File name
+ * @query fileType - File MIME type
  */
 router.get('/presigned-url', getPresignedUrl);
 
