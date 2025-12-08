@@ -85,8 +85,9 @@ const profileSchema = new mongoose.Schema(
   }
 );
 
-profileSchema.index({ userId: 1 });
-profileSchema.index({ username: 1 });
+// userId and username already declare `unique: true` at the field level
+// which creates the indices automatically. Avoid duplicate indices warnings
+// by not declaring the same index twice.
 profileSchema.index({ tags: 1 });
 
 profileSchema.methods.toJSON = function () {
