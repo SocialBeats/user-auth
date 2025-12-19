@@ -302,3 +302,7 @@ export const revokeAll = async (req, res) => {
     });
   }
 };
+
+/**
+ * Controlador para buscar usuarios
+ */

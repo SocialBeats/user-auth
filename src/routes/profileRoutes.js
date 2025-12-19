@@ -132,6 +132,94 @@ router.delete('/me', profileController.deleteMyProfile);
 
 /**
  * @openapi
+ * /api/v1/profile:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Explorar todos los perfiles
+ *     description: Obtiene una lista paginada de todos los perfiles públicos
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Número de resultados por página
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profiles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ */
+router.get('/', profileController.getAllProfiles);
+
+/**
+ * @openapi
+ * /api/v1/profile/search:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Buscar perfiles
+ *     description: Busca perfiles por username, nombre completo o email
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Término de búsqueda (username, email, nombre)
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles encontrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profiles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       userId:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       full_name:
+ *                         type: string
+ *                       avatar:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *       400:
+ *         description: Término de búsqueda faltante
+ */
+router.get('/search', profileController.searchProfiles);
+
+/**
+ * @openapi
  * /api/v1/profile/{username}:
  *   get:
  *     tags:
