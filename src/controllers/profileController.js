@@ -114,3 +114,47 @@ export const deleteMyProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Busca perfiles
+ * @route GET /api/v1/profile/search
+ */
+export const searchProfiles = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+
+    if (!q) {
+      return res.status(400).json({
+        error: 'MISSING_SEARCH_TERM',
+        message: 'Search term (q) is required',
+      });
+    }
+
+    const profiles = await profileService.searchProfiles(q);
+
+    res.status(200).json({
+      profiles,
+    });
+  } catch (error) {
+    logger.error(`Error searching profiles: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
+ * Obtiene todos los perfiles (explorar)
+ * @route GET /api/v1/profile
+ */
+export const getAllProfiles = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const result = await profileService.getAllProfiles(page, limit);
+
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(`Error fetching all profiles: ${error.message}`);
+    next(error);
+  }
+};

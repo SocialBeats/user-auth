@@ -138,3 +138,64 @@ export async function deleteProfile(userId) {
     throw error;
   }
 }
+/**
+ * Busca perfiles por string de búsqueda (username)
+ * @param {String} query - String de búsqueda
+ * @returns {Promise<Array>} - Array de perfiles encontrados
+ */
+/**
+ * Busca perfiles por string de búsqueda (username, full_name, email)
+ * @param {String} query - String de búsqueda
+ * @returns {Promise<Array>} - Array de perfiles encontrados
+ */
+export async function searchProfiles(query) {
+  try {
+    const searchRegex = { $regex: query, $options: 'i' };
+    const profiles = await Profile.find(
+      {
+        $or: [
+          { username: searchRegex },
+          { full_name: searchRegex },
+          { email: searchRegex },
+        ],
+      },
+      'userId username full_name avatar email'
+    );
+    return profiles;
+  } catch (error) {
+    logger.error(`Error searching profiles: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Obtiene todos los perfiles con paginación
+ * @param {Number} page - Número de página (default 1)
+ * @param {Number} limit - Límite por página (default 10)
+ * @returns {Promise<Object>} - Objeto con perfiles y metadata de paginación
+ */
+export async function getAllProfiles(page = 1, limit = 10) {
+  try {
+    const skip = (page - 1) * limit;
+
+    const [profiles, total] = await Promise.all([
+      Profile.find({}, 'userId username full_name avatar about_me tags')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      Profile.countDocuments(),
+    ]);
+
+    return {
+      profiles,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    logger.error(`Error fetching all profiles: ${error.message}`);
+    throw error;
+  }
+}
