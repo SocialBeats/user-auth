@@ -199,3 +199,120 @@ export async function getAllProfiles(page = 1, limit = 10) {
     throw error;
   }
 }
+
+/**
+ * Calcula el estado de completitud del perfil
+ * @param {String} userId - ID del usuario
+ * @returns {Promise<Object>} - Estado de completitud con pasos, porcentaje y nivel
+ */
+export async function getProfileCompletionStatus(userId) {
+  try {
+    const profile = await Profile.findOne({ userId });
+
+    if (!profile) {
+      throw new Error(`Profile not found for user ${userId}`);
+    }
+
+    // Definición de los 8 pasos
+    const steps = [
+      {
+        id: 1,
+        name: 'basic_info',
+        label: 'Información básica',
+        required: true,
+        completed: !!(
+          profile.full_name?.trim().length >= 2 &&
+          profile.contact?.city?.trim() &&
+          profile.contact?.country?.trim()
+        ),
+      },
+      {
+        id: 2,
+        name: 'about_me',
+        label: 'Sobre mí',
+        required: true,
+        completed: profile.about_me?.trim().length >= 50,
+      },
+      {
+        id: 3,
+        name: 'avatar',
+        label: 'Foto de perfil',
+        required: true,
+        completed: !!profile.avatar?.trim(),
+      },
+      {
+        id: 4,
+        name: 'contact',
+        label: 'Información de contacto',
+        required: true,
+        completed: !!(
+          profile.contact?.phone?.trim() || profile.contact?.website?.trim()
+        ),
+      },
+      {
+        id: 5,
+        name: 'skills',
+        label: 'Aptitudes',
+        required: true,
+        completed: Array.isArray(profile.tags) && profile.tags.length >= 3,
+      },
+      {
+        id: 6,
+        name: 'education',
+        label: 'Educación',
+        required: false,
+        skippable: true,
+        completed:
+          Array.isArray(profile.studies) && profile.studies.length >= 1,
+      },
+      {
+        id: 7,
+        name: 'certifications',
+        label: 'Certificaciones',
+        required: false,
+        skippable: true,
+        completed:
+          Array.isArray(profile.certifications) &&
+          profile.certifications.length >= 1,
+      },
+      {
+        id: 8,
+        name: 'identity',
+        label: 'Verificación de identidad',
+        required: true,
+        completed: profile.identityVerified === true,
+      },
+    ];
+
+    // Calcular porcentaje basado solo en pasos requeridos
+    const requiredSteps = steps.filter((s) => s.required);
+    const completedRequired = requiredSteps.filter((s) => s.completed).length;
+    const completionPercentage = Math.round(
+      (completedRequired / requiredSteps.length) * 100
+    );
+
+    // Determinar nivel de verificación
+    // Una vez verificada la identidad, siempre es verificado (permanente)
+    const verificationLevel =
+      profile.identityVerified === true ? 'verified' : 'none';
+
+    // Encontrar el siguiente paso requerido incompleto
+    const nextStep = steps.find((s) => s.required && !s.completed) || null;
+
+    return {
+      steps,
+      completionPercentage,
+      verificationLevel,
+      nextStep: nextStep
+        ? { id: nextStep.id, name: nextStep.name, label: nextStep.label }
+        : null,
+      totalSteps: steps.length,
+      requiredSteps: requiredSteps.length,
+      completedSteps: steps.filter((s) => s.completed).length,
+      completedRequiredSteps: completedRequired,
+    };
+  } catch (error) {
+    logger.error(`Error getting profile completion status: ${error.message}`);
+    throw error;
+  }
+}
