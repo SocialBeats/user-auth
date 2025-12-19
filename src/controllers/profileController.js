@@ -158,3 +158,29 @@ export const getAllProfiles = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Obtiene el estado de completitud del perfil
+ * @route GET /api/v1/profile/me/completion-status
+ */
+export const getCompletionStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const completionStatus =
+      await profileService.getProfileCompletionStatus(userId);
+
+    res.status(200).json(completionStatus);
+  } catch (error) {
+    logger.error(`Error getting completion status: ${error.message}`);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'PROFILE_NOT_FOUND',
+        message: error.message,
+      });
+    }
+
+    next(error);
+  }
+};

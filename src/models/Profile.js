@@ -78,6 +78,20 @@ const profileSchema = new mongoose.Schema(
         message: 'Cannot have more than 20 certifications',
       },
     },
+    // Verification fields
+    verificationLevel: {
+      type: String,
+      enum: ['none', 'verified'],
+      default: 'none',
+    },
+    identityVerified: {
+      type: Boolean,
+      default: false,
+    },
+    identityVerificationDate: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
