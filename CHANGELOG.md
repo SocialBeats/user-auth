@@ -1,3 +1,44 @@
+# Release v0.0.3
+
+## Features
+- feat: basic repository for other microservice
+- feat: update .env.examples
+- feat: upload pdfs for certifications
+- feat: add S3 upload functionality with presigned URLs
+
+## Tests
+- test: integration
+- test: controllers
+- test: middlewares
+- test: services
+- test: setup
+
+## Documentation
+No documentation changes.
+## Fixes
+- fix: update API version in OAS
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- chore: update oas version
+- Merge branch 'main' of https://github.com/SocialBeats/user-auth
+- chore: add oas yaml
+- Merge pull request #36 from SocialBeats/develop
+- Merge branch 'develop' of https://github.com/SocialBeats/user-auth into develop
+- chore: oas yml
+- Merge pull request #35 from SocialBeats/release-fix
+- Merge pull request #33 from SocialBeats/test/coverage
+- Merge pull request #32 from SocialBeats/feat/s3-integration
+- Merge branch 'feat/s3-integration' of https://github.com/SocialBeats/user-auth into feat/s3-integration
+- Update src/controllers/uploadController.js
+- Update src/controllers/uploadController.js
+- Update src/routes/uploadRoutes.js
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.2...v0.0.3).
+
 # Release v0.0.2
 
 ## Features
