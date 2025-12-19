@@ -63,8 +63,20 @@ const profileSchema = new mongoose.Schema(
       },
     },
     certifications: {
-      type: mongoose.Schema.Types.Mixed,
+      type: [
+        {
+          title: { type: String, required: true, maxlength: 100 },
+          url: { type: String, required: true },
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
       default: [],
+      validate: {
+        validator: function (certs) {
+          return certs.length <= 20;
+        },
+        message: 'Cannot have more than 20 certifications',
+      },
     },
   },
   {
@@ -73,8 +85,9 @@ const profileSchema = new mongoose.Schema(
   }
 );
 
-profileSchema.index({ userId: 1 });
-profileSchema.index({ username: 1 });
+// userId and username already declare `unique: true` at the field level
+// which creates the indices automatically. Avoid duplicate indices warnings
+// by not declaring the same index twice.
 profileSchema.index({ tags: 1 });
 
 profileSchema.methods.toJSON = function () {
