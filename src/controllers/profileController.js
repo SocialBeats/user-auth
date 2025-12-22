@@ -1,5 +1,42 @@
 import * as profileService from '../services/profileService.js';
+import User from '../models/User.js';
 import logger from '../../logger.js';
+
+export const updateVerificationStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, provider_id } = req.body;
+
+    logger.info(
+      `Actualizando estado de verificación para usuario: ${userId} a ${status}`
+    );
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (status === 'VERIFICADO') {
+      user.identityVerified = true;
+      // Podríamos guardar el provider_id si el modelo lo soportara
+      // user.verificationId = provider_id;
+    } else {
+      // Manejar otros estados si es necesario
+      user.identityVerified = false;
+    }
+
+    await user.save();
+
+    logger.info(`Estado de verificación actualizado para usuario: ${userId}`);
+    res
+      .status(200)
+      .json({ message: 'Estado de verificación actualizado correctamente' });
+  } catch (error) {
+    logger.error(`Error actualizando verificación: ${error.message}`);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+};
 
 /**
  * Obtiene el perfil del usuario autenticado
