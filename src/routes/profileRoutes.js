@@ -4,8 +4,47 @@ import {
   requireAdmin,
   requireBeatmaker,
 } from '../middlewares/roleMiddleware.js';
+import { requireInternalApiKey } from '../middlewares/internalMiddleware.js';
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/v1/profile/internal/{userId}/verification-status:
+ *   put:
+ *     tags:
+ *       - Internal
+ *     summary: Actualizar estado de verificación (Interno)
+ *     description: Endpoint protegido por API Key interna para actualizar estado de verificación desde FaaS/Webhooks.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [VERIFICADO, PENDING, REJECTED]
+ *               provider_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *       401:
+ *         description: Invalid Internal API Key
+ */
+router.put(
+  '/internal/:userId/verification-status',
+  requireInternalApiKey,
+  profileController.updateVerificationStatus
+);
 
 /**
  * @openapi

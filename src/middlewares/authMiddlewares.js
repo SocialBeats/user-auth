@@ -12,6 +12,7 @@ const openPaths = [
   '/api/v1/auth/refresh',
   '/api/v1/auth/logout', // Logout público (RFC 7009 - best effort revocation)
   '/api/v1/auth/validate-token', // Para que el gateway pueda validar tokens
+  '/api/v1/profile/internal/', // Rutas internas protegidas por API Key, no JWT
 ];
 
 const verifyToken = async (req, res, next) => {
