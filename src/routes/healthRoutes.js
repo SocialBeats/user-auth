@@ -89,9 +89,15 @@ export default function healthRoutes(app) {
    *                   example: disconnected
    */
   app.get('/api/v1/kafka/health', async (req, res) => {
-    const status = await isKafkaConnected();
-    res.status(status ? 200 : 503).json({
-      kafka: status ? 'connected' : 'disconnected',
-    });
+    try {
+      const status = await isKafkaConnected();
+      res.status(status ? 200 : 503).json({
+        kafka: status ? 'connected' : 'disconnected',
+      });
+    } catch (error) {
+      res.status(503).json({
+        kafka: 'disconnected',
+      });
+    }
   });
 }
