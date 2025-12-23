@@ -25,6 +25,11 @@ vi.mock('../../../logger.js', () => ({
   },
 }));
 
+vi.mock('../../../src/services/kafkaProducer.js', () => ({
+  publishUserEvent: vi.fn().mockResolvedValue(undefined),
+  isKafkaEnabled: vi.fn().mockReturnValue(false),
+}));
+
 // Import after mocks
 import * as adminService from '../../../src/services/adminService.js';
 import User from '../../../src/models/User.js';

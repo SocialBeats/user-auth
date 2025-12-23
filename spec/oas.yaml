@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Users and Authentication Microservice
   version: v0.0.3
-  description: This is an OAS description of this Microservice REST API
+  description: This is an OAS description of the Users and Authentication Microservice REST API
 servers:
   - url: http://localhost:3000
 components:
@@ -608,6 +608,33 @@ paths:
                   db:
                     type: string
                     example: connected
+  /api/v1/kafka/health:
+    get:
+      tags:
+        - Kafka
+      summary: Kafka health check
+      description: Verifies whether Kafka is currently reachable and responding.
+      responses:
+        '200':
+          description: Kafka is running and the connection is successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: connected
+        '503':
+          description: Kafka is not reachable or connection failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: disconnected
   /api/v1/profile/internal/{userId}/verification-status:
     put:
       tags:

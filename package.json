@@ -33,6 +33,7 @@
     "ioredis": "^5.8.2",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "marked": "^17.0.0",
     "mongoose": "^8.19.3",
     "swagger-jsdoc": "^6.2.8",

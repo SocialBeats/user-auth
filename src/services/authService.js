@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import logger from '../../logger.js';
 import * as tokenService from './tokenService.js';
 import { createProfile } from './profileService.js';
+import { publishUserEvent } from './kafkaProducer.js';
 
 /**
  * Registra un nuevo usuario
@@ -48,6 +49,15 @@ export const registerUser = async (userData) => {
     await User.findByIdAndDelete(user._id);
     throw new Error('Failed to create user profile');
   }
+
+  await publishUserEvent('USER_CREATED', {
+    _id: user._id.toString(),
+    username: user.username,
+    email: user.email,
+    roles: user.roles,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  });
 
   logger.info(`New user registered: ${username}`);
   return user;

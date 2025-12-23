@@ -1,12 +1,14 @@
 # Release v0.0.3
 
 ## Features
+
 - feat: basic repository for other microservice
 - feat: update .env.examples
 - feat: upload pdfs for certifications
 - feat: add S3 upload functionality with presigned URLs
 
 ## Tests
+
 - test: integration
 - test: controllers
 - test: middlewares
@@ -14,13 +16,19 @@
 - test: setup
 
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: update API version in OAS
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - chore: update oas version
 - Merge branch 'main' of https://github.com/SocialBeats/user-auth
 - chore: add oas yaml
@@ -42,18 +50,28 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v0.0.2
 
 ## Features
+
 - feat: add cascade deletion for Profile when User is deleted
 - feat: preliminary profile model
 
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 No fixes added.
+
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #24 from SocialBeats/develop
 - chore: prepare .env for infrastructure
 - refactor: handle access token if it expired when logging out
@@ -73,6 +91,7 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v0.0.1
 
 ## Features
+
 - feat: added admin management
 - feat: typos and enhance errors for login workflow in frontend
 - feat: refactor authentication flow and enhance error handling
@@ -86,19 +105,26 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 - feat: configure Redis client
 
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 - docs: update Swagger documentation for /refresh endpoint response schema
 - docs: swagger documentation
 
 ## Fixes
+
 - fix: mongodb container name changed
 - fix: main js updated with redis
 - fix: main js updated with routes
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #21 from SocialBeats/develop
 - Merge pull request #18 from SocialBeats/feat/admin-routes
 - Update src/services/adminService.js
@@ -118,4 +144,3 @@ No CI changes.
 ## Full commit history
 
 For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/...v0.0.1).
-

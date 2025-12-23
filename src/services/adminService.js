@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import logger from '../../logger.js';
 import { deleteProfile, getProfileByUserId } from './profileService.js';
+import { publishUserEvent } from './kafkaProducer.js';
 
 /**
  * Get all users from the database
@@ -76,6 +77,16 @@ export const updateUserByUsername = async (username, updateData) => {
     await user.save();
     // Re-query the updated user, excluding the password field
     const updatedUser = await User.findOne({ username }, '-password');
+
+    // Publish USER_UPDATED event to Kafka
+    await publishUserEvent('USER_UPDATED', {
+      _id: updatedUser._id.toString(),
+      username: updatedUser.username,
+      email: updatedUser.email,
+      roles: updatedUser.roles,
+      updatedAt: updatedUser.updatedAt,
+    });
+
     return updatedUser;
   } catch (error) {
     logger.error(`Error updating user ${username}: ${error.message}`);
@@ -118,7 +129,13 @@ export const deleteUser = async (userId) => {
       );
     }
 
-    // Proceed to delete user
+    // Publish USER_DELETED event to Kafka before deleting the user
+    await publishUserEvent('USER_DELETED', {
+      _id: userId.toString(),
+      username: user.username,
+    });
+
+    // Proceed to delete user only after successful event publication
     const deletedUser = await User.findByIdAndDelete(userId);
     logger.info(`User deleted: ${user.username}`);
     return deletedUser;
