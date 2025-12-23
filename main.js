@@ -11,7 +11,6 @@ import {
   connectKafkaProducer,
   disconnectKafkaProducer,
   isKafkaEnabled,
-  producer,
 } from './src/services/kafkaProducer.js';
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
