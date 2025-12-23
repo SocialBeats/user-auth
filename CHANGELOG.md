@@ -1,3 +1,42 @@
+# Release v0.0.5
+
+## Features
+- feat: kafka events on actions
+- feat: kafka producer
+- feat: kafka init configuration
+- feat: add profile verification using internal api key (Persona)
+- feat: handle profile completion steps
+
+## Tests
+- test: tests for kafkaProducer
+- test: updated tests
+
+## Documentation
+No documentation changes.
+## Fixes
+- fix: linter fix
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #41 from SocialBeats/develop
+- Merge pull request #40 from SocialBeats/feat/kafka
+- Merge branch 'feat/kafka' of https://github.com/SocialBeats/user-auth into feat/kafka
+- Update src/services/kafkaProducer.js
+- Update main.js
+- Update main.js
+- Update spec/oas.yaml
+- Update src/routes/healthRoutes.js
+- Update src/services/adminService.js
+- Update src/services/kafkaProducer.js
+- Merge pull request #39 from SocialBeats/feat/persona-integration
+- Merge pull request #38 from SocialBeats/feat/ramon-features
+- Merge pull request #37 from SocialBeats/main
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.3...v0.0.5).
+
 # Release v0.0.3
 
 ## Features
