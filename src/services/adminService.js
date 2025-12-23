@@ -129,15 +129,14 @@ export const deleteUser = async (userId) => {
       );
     }
 
-    // Proceed to delete user
-    const deletedUser = await User.findByIdAndDelete(userId);
-
-    // Publish USER_DELETED event to Kafka
+    // Publish USER_DELETED event to Kafka before deleting the user
     await publishUserEvent('USER_DELETED', {
       _id: userId.toString(),
       username: user.username,
     });
 
+    // Proceed to delete user only after successful event publication
+    const deletedUser = await User.findByIdAndDelete(userId);
     logger.info(`User deleted: ${user.username}`);
     return deletedUser;
   } catch (error) {

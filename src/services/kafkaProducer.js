@@ -27,7 +27,6 @@ export async function connectKafkaProducer() {
       await producer.connect();
       isConnected = true;
       logger.info('Kafka producer connected successfully');
-      attempt = 1;
       break;
     } catch (err) {
       logger.error(`Kafka connection failed: ${err.message}`);
@@ -83,19 +82,30 @@ export async function publishUserEvent(eventType, payload) {
       timestamp: new Date().toISOString(),
     };
 
+    // Derive a stable message key to maintain predictable partitioning
+    let messageKey;
+    if (payload && (payload._id != null || payload.userId != null)) {
+      const identifier = payload._id ?? payload.userId;
+      messageKey = identifier.toString();
+    } else {
+      messageKey = 'unknown-user';
+      logger.warn(
+        `publishUserEvent called without user identifier for event type ${eventType}; using default Kafka key "${messageKey}".`
+      );
+    }
+
     await producer.send({
       topic: 'users-events',
       messages: [
         {
-          key: payload._id?.toString() || payload.userId?.toString(),
+          key: messageKey,
           value: JSON.stringify(event),
         },
       ],
     });
 
-    logger.info(
-      `Event published: ${eventType} for user ${payload._id || payload.userId}`
-    );
+    const userIdentifier = payload?._id ?? payload?.userId ?? 'unknown-user';
+    logger.info(`Event published: ${eventType} for user ${userIdentifier}`);
   } catch (err) {
     logger.error(`Failed to publish event ${eventType}:`, err);
     // Don't throw - publishing failure shouldn't break the main operation

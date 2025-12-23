@@ -11,7 +11,6 @@ import {
   connectKafkaProducer,
   disconnectKafkaProducer,
   isKafkaEnabled,
-  producer,
 } from './src/services/kafkaProducer.js';
 // import your middlewares here
 import verifyToken from './src/middlewares/authMiddlewares.js';
@@ -100,6 +99,16 @@ async function gracefulShutdown(signal) {
       logger.info('Shutdown complete. Bye! ;)');
       process.exit(0);
     });
+  } else {
+    try {
+      await disconnectDB();
+      logger.info('MongoDB disconnected');
+    } catch (err) {
+      logger.error('Error disconnecting MongoDB:', err);
+    }
+
+    logger.info('Shutdown complete. Bye! ;)');
+    process.exit(0);
   }
 }
 
