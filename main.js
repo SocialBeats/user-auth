@@ -99,6 +99,16 @@ async function gracefulShutdown(signal) {
       logger.info('Shutdown complete. Bye! ;)');
       process.exit(0);
     });
+  } else {
+    try {
+      await disconnectDB();
+      logger.info('MongoDB disconnected');
+    } catch (err) {
+      logger.error('Error disconnecting MongoDB:', err);
+    }
+
+    logger.info('Shutdown complete. Bye! ;)');
+    process.exit(0);
   }
 }
 
