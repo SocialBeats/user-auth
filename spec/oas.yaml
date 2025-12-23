@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Users and Authentication Microservice
-  version: v0.0.2
-  description: This is an OAS description of this Microservice REST API
+  version: v0.0.3
+  description: This is an OAS description of the Users and Authentication Microservice REST API
 servers:
   - url: http://localhost:3000
 components:
@@ -608,6 +608,67 @@ paths:
                   db:
                     type: string
                     example: connected
+  /api/v1/kafka/health:
+    get:
+      tags:
+        - Kafka
+      summary: Kafka health check
+      description: Verifies whether Kafka is currently reachable and responding.
+      responses:
+        '200':
+          description: Kafka is running and the connection is successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: connected
+        '503':
+          description: Kafka is not reachable or connection failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kafka:
+                    type: string
+                    example: disconnected
+  /api/v1/profile/internal/{userId}/verification-status:
+    put:
+      tags:
+        - Internal
+      summary: Actualizar estado de verificación (Interno)
+      description: >-
+        Endpoint protegido por API Key interna para actualizar estado de
+        verificación desde FaaS/Webhooks.
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - VERIFICADO
+                    - PENDING
+                    - REJECTED
+                provider_id:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+        '401':
+          description: Invalid Internal API Key
   /api/v1/profile/me:
     get:
       tags:
@@ -710,6 +771,52 @@ paths:
       responses:
         '200':
           description: Perfil eliminado exitosamente
+        '401':
+          description: No autenticado
+        '404':
+          description: Perfil no encontrado
+  /api/v1/profile/me/completion-status:
+    get:
+      tags:
+        - Profile
+      summary: Obtener estado de completitud del perfil
+      description: Obtiene el progreso de completitud del perfil por pasos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estado de completitud obtenido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  steps:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        label:
+                          type: string
+                        required:
+                          type: boolean
+                        completed:
+                          type: boolean
+                  completionPercentage:
+                    type: integer
+                  verificationLevel:
+                    type: string
+                    enum:
+                      - none
+                      - basic
+                      - advanced
+                      - verified
+                  nextStep:
+                    type: object
         '401':
           description: No autenticado
         '404':

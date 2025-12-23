@@ -4,8 +4,47 @@ import {
   requireAdmin,
   requireBeatmaker,
 } from '../middlewares/roleMiddleware.js';
+import { requireInternalApiKey } from '../middlewares/internalMiddleware.js';
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/v1/profile/internal/{userId}/verification-status:
+ *   put:
+ *     tags:
+ *       - Internal
+ *     summary: Actualizar estado de verificación (Interno)
+ *     description: Endpoint protegido por API Key interna para actualizar estado de verificación desde FaaS/Webhooks.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [VERIFICADO, PENDING, REJECTED]
+ *               provider_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *       401:
+ *         description: Invalid Internal API Key
+ */
+router.put(
+  '/internal/:userId/verification-status',
+  requireInternalApiKey,
+  profileController.updateVerificationStatus
+);
 
 /**
  * @openapi
@@ -53,6 +92,53 @@ const router = express.Router();
  *         description: Perfil no encontrado
  */
 router.get('/me', profileController.getMyProfile);
+
+/**
+ * @openapi
+ * /api/v1/profile/me/completion-status:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Obtener estado de completitud del perfil
+ *     description: Obtiene el progreso de completitud del perfil por pasos
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Estado de completitud obtenido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 steps:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       required:
+ *                         type: boolean
+ *                       completed:
+ *                         type: boolean
+ *                 completionPercentage:
+ *                   type: integer
+ *                 verificationLevel:
+ *                   type: string
+ *                   enum: [none, basic, advanced, verified]
+ *                 nextStep:
+ *                   type: object
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Perfil no encontrado
+ */
+router.get('/me/completion-status', profileController.getCompletionStatus);
 
 /**
  * @openapi

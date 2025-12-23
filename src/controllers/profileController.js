@@ -1,5 +1,42 @@
 import * as profileService from '../services/profileService.js';
+import User from '../models/User.js';
 import logger from '../../logger.js';
+
+export const updateVerificationStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, provider_id } = req.body;
+
+    logger.info(
+      `Actualizando estado de verificación para usuario: ${userId} a ${status}`
+    );
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (status === 'VERIFICADO') {
+      user.identityVerified = true;
+      // Podríamos guardar el provider_id si el modelo lo soportara
+      // user.verificationId = provider_id;
+    } else {
+      // Manejar otros estados si es necesario
+      user.identityVerified = false;
+    }
+
+    await user.save();
+
+    logger.info(`Estado de verificación actualizado para usuario: ${userId}`);
+    res
+      .status(200)
+      .json({ message: 'Estado de verificación actualizado correctamente' });
+  } catch (error) {
+    logger.error(`Error actualizando verificación: ${error.message}`);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+};
 
 /**
  * Obtiene el perfil del usuario autenticado
@@ -155,6 +192,32 @@ export const getAllProfiles = async (req, res, next) => {
     res.status(200).json(result);
   } catch (error) {
     logger.error(`Error fetching all profiles: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
+ * Obtiene el estado de completitud del perfil
+ * @route GET /api/v1/profile/me/completion-status
+ */
+export const getCompletionStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const completionStatus =
+      await profileService.getProfileCompletionStatus(userId);
+
+    res.status(200).json(completionStatus);
+  } catch (error) {
+    logger.error(`Error getting completion status: ${error.message}`);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        error: 'PROFILE_NOT_FOUND',
+        message: error.message,
+      });
+    }
+
     next(error);
   }
 };
