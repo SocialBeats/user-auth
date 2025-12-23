@@ -27,7 +27,6 @@ export async function connectKafkaProducer() {
       await producer.connect();
       isConnected = true;
       logger.info('Kafka producer connected successfully');
-      attempt = 1;
       break;
     } catch (err) {
       logger.error(`Kafka connection failed: ${err.message}`);
