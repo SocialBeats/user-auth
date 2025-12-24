@@ -87,6 +87,30 @@ export const getProfileByUsername = async (req, res, next) => {
 };
 
 /**
+ * Obtiene el perfil de un usuario por userId
+ * @route GET /api/v1/profile/:userId
+ */
+export const getProfileByUserId = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    const profile = await profileService.getProfileByUserId(userId);
+
+    if (!profile) {
+      return res.status(404).json({
+        error: 'PROFILE_NOT_FOUND',
+        message: `Profile not found for userId ${userId}`,
+      });
+    }
+
+    res.status(200).json(profile);
+  } catch (error) {
+    logger.error(`Error fetching profile by userId: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
  * Actualiza el perfil del usuario autenticado
  * @route PUT /api/v1/profile/me
  */

@@ -61,7 +61,10 @@ export async function createProfile(userData) {
  */
 export async function getProfileByUserId(userId) {
   try {
-    const profile = await Profile.findOne({ userId });
+    const profile = await Profile.findOne(
+      { userId },
+      'userId username full_name avatar email'
+    );
     return profile;
   } catch (error) {
     logger.error(`Error fetching profile for user ${userId}: ${error.message}`);
