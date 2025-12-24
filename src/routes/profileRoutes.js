@@ -306,6 +306,56 @@ router.get('/search', profileController.searchProfiles);
 
 /**
  * @openapi
+ * /api/v1/profile/{userId}:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Obtener perfil por userId
+ *     description: Obtiene el perfil público de un usuario por su userId
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Perfil obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 about_me:
+ *                   type: string
+ *                 avatar:
+ *                   type: string
+ *                 full_name:
+ *                   type: string
+ *                 contact:
+ *                   type: object
+ *                 studies:
+ *                   type: array
+ *                 tags:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 certifications:
+ *                   type: array
+ *       404:
+ *         description: Perfil no encontrado
+ */
+router.get('/:userId', profileController.getProfileByUserId);
+
+/**
+ * @openapi
  * /api/v1/profile/{username}:
  *   get:
  *     tags:
