@@ -12,6 +12,8 @@
     "test": "cross-env NODE_ENV=test vitest --run",
     "test:watch": "cross-env NODE_ENV=test vitest --watch",
     "test:coverage": "cross-env NODE_ENV=test vitest --coverage --run",
+    "test:unit": "cross-env NODE_ENV=test vitest --run tests/unit",
+    "test:unit:coverage": "cross-env NODE_ENV=test vitest --coverage --run tests/unit",
     "lint": "prettier --check '**/*.{cjs,js,ts,css,md}'",
     "lint:fix": "prettier --write '**/*.{cjs,js,ts,css,md}'",
     "prepare": "husky"

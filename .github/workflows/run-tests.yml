@@ -48,8 +48,8 @@ jobs:
             sleep 2
           done
 
-      - name: Run tests with coverage
-        run: npm run test:coverage
+      - name: Run unit tests with coverage
+        run: npm run test:unit:coverage
 
       - name: Upload coverage report
         if: always()
