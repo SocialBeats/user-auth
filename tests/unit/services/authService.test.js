@@ -37,6 +37,13 @@ vi.mock('../../../src/services/kafkaProducer.js', () => ({
   isKafkaEnabled: vi.fn().mockReturnValue(false),
 }));
 
+vi.mock('../../../src/services/emailService.js', () => ({
+  sendVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendPasswordChangedEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 // Import after mocks
 import * as authService from '../../../src/services/authService.js';
 import User from '../../../src/models/User.js';
@@ -76,7 +83,15 @@ describe('AuthService', () => {
           { email: validUserData.email },
         ],
       });
-      expect(User.create).toHaveBeenCalledWith(validUserData);
+      expect(User.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: validUserData.username,
+          email: validUserData.email,
+          password: validUserData.password,
+          roles: validUserData.roles,
+          emailVerified: false,
+        })
+      );
       expect(profileService.createProfile).toHaveBeenCalledWith({
         userId: mockUser._id,
         username: mockUser.username,
