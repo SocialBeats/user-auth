@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Microservice API
+  title: Users and Authentication Microservice
   version: v0.0.3
   description: This is an OAS description of this Microservice REST API
 servers:
