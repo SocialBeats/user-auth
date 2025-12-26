@@ -110,6 +110,24 @@ export const getCircuitBreakerStatus = () => ({
   config: CIRCUIT_CONFIG,
 });
 
+/**
+ * Reset circuit breaker to initial state (for testing purposes)
+ */
+export const resetCircuitBreaker = () => {
+  circuitBreaker.state = CircuitState.CLOSED;
+  circuitBreaker.failures = 0;
+  circuitBreaker.successes = 0;
+  circuitBreaker.lastFailureTime = null;
+  circuitBreaker.nextAttempt = null;
+};
+
+/**
+ * Set circuit breaker next attempt time (for testing purposes)
+ */
+export const setCircuitBreakerNextAttempt = (time) => {
+  circuitBreaker.nextAttempt = time;
+};
+
 // ============================================
 // CLIENTE DE RESEND
 // ============================================
