@@ -1,8 +1,10 @@
+import crypto from 'crypto';
 import User from '../models/User.js';
 import logger from '../../logger.js';
 import * as tokenService from './tokenService.js';
 import { createProfile } from './profileService.js';
 import { publishUserEvent } from './kafkaProducer.js';
+import * as emailService from './emailService.js';
 
 /**
  * Registra un nuevo usuario
@@ -26,12 +28,18 @@ export const registerUser = async (userData) => {
     }
   }
 
-  // Crear nuevo usuario (el password se hasheará automáticamente por el middleware)
+  // Generar token de verificación de email
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+
   const user = await User.create({
     username,
     email,
     password,
     roles: roles || ['beatmaker'],
+    emailVerified: false,
+    emailVerificationToken: verificationToken,
+    emailVerificationExpires: verificationExpires,
   });
 
   // Crear perfil asociado al usuario
@@ -58,6 +66,19 @@ export const registerUser = async (userData) => {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   });
+
+  try {
+    await emailService.sendVerificationEmail({
+      email: user.email,
+      username: user.username,
+      verificationToken,
+    });
+  } catch (emailError) {
+    // No bloqueamos el registro si falla el envío de email
+    logger.error(
+      `Failed to send verification email to ${email}: ${emailError.message}`
+    );
+  }
 
   logger.info(`New user registered: ${username}`);
   return user;
@@ -190,4 +211,144 @@ export const revokeAllUserTokens = async (userId) => {
   const revokedCount = await tokenService.revokeAllUserTokens(userId);
   logger.info(`All tokens revoked for user: ${userId}`);
   return revokedCount;
+};
+
+/**
+ * Verifica el email del usuario usando el token de verificación
+ * @param {string} token - Token de verificación
+ * @returns {Object} - Usuario actualizado
+ */
+export const verifyEmail = async (token) => {
+  const user = await User.findOne({
+    emailVerificationToken: token,
+    emailVerificationExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw new Error('Invalid or expired verification token');
+  }
+
+  // Marcar email como verificado y limpiar tokens
+  user.emailVerified = true;
+  user.emailVerificationToken = null;
+  user.emailVerificationExpires = null;
+  await user.save();
+
+  try {
+    await emailService.sendWelcomeEmail({
+      email: user.email,
+      username: user.username,
+    });
+  } catch (emailError) {
+    logger.error(`Failed to send welcome email: ${emailError.message}`);
+  }
+
+  logger.info(`Email verified for user: ${user.username}`);
+  return user;
+};
+
+/**
+ * Reenvía el correo de verificación con un nuevo token
+ * @param {string} email - Email del usuario
+ * @returns {Object} - Resultado del reenvío
+ */
+export const resendVerificationEmail = async (email) => {
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (user.emailVerified) {
+    throw new Error('Email already verified');
+  }
+
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+
+  user.emailVerificationToken = verificationToken;
+  user.emailVerificationExpires = verificationExpires;
+  await user.save();
+
+  await emailService.sendVerificationEmail({
+    email: user.email,
+    username: user.username,
+    verificationToken,
+  });
+
+  logger.info(`Verification email resent to: ${user.email}`);
+  return { message: 'Verification email sent' };
+};
+
+/**
+ * Solicita el restablecimiento de contraseña
+ * @param {string} email - Email del usuario
+ * @returns {Object} - Resultado de la solicitud
+ */
+export const requestPasswordReset = async (email) => {
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  if (!user) {
+    logger.info(`Password reset requested for non-existent email: ${email}`);
+    return { message: 'If the email exists, a reset link will be sent' };
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+  user.passwordResetToken = resetToken;
+  user.passwordResetExpires = resetExpires;
+  await user.save();
+
+  try {
+    await emailService.sendPasswordResetEmail({
+      email: user.email,
+      username: user.username,
+      resetToken,
+    });
+    logger.info(`Password reset email sent to: ${user.email}`);
+  } catch (emailError) {
+    logger.error(`Failed to send password reset email: ${emailError.message}`);
+    throw new Error('Failed to send password reset email');
+  }
+
+  return { message: 'If the email exists, a reset link will be sent' };
+};
+
+/**
+ * Restablece la contraseña usando el token de reset
+ * @param {string} token - Token de restablecimiento
+ * @param {string} newPassword - Nueva contraseña
+ * @returns {Object} - Resultado del restablecimiento
+ */
+export const resetPassword = async (token, newPassword) => {
+  const user = await User.findOne({
+    passwordResetToken: token,
+    passwordResetExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw new Error('Invalid or expired reset token');
+  }
+
+  user.password = newPassword;
+  user.passwordResetToken = null;
+  user.passwordResetExpires = null;
+  await user.save();
+
+  await tokenService.revokeAllUserTokens(user._id.toString());
+
+  try {
+    await emailService.sendPasswordChangedEmail({
+      email: user.email,
+      username: user.username,
+    });
+  } catch (emailError) {
+    logger.error(
+      `Failed to send password changed confirmation: ${emailError.message}`
+    );
+  }
+
+  logger.info(`Password reset successfully for user: ${user.username}`);
+  return { message: 'Password reset successfully' };
 };

@@ -8,6 +8,14 @@ vi.mock('../../../src/services/profileService.js', () => ({
   deleteProfile: vi.fn(),
 }));
 
+vi.mock('../../../src/models/User.js', () => ({
+  default: {
+    findById: vi.fn().mockReturnValue({
+      select: vi.fn(),
+    }),
+  },
+}));
+
 vi.mock('../../../logger.js', () => ({
   default: {
     info: vi.fn(),
@@ -19,6 +27,7 @@ vi.mock('../../../logger.js', () => ({
 // Import after mocks
 import * as profileController from '../../../src/controllers/profileController.js';
 import * as profileService from '../../../src/services/profileService.js';
+import User from '../../../src/models/User.js';
 
 // Mock Express req/res/next
 const mockRequest = (body = {}, user = null, params = {}) => ({
@@ -49,17 +58,32 @@ describe('ProfileController', () => {
         username: 'testuser',
         email: 'test@test.com',
         about_me: 'Test bio',
+        toObject: vi.fn().mockReturnValue({
+          userId: 'user-id',
+          username: 'testuser',
+          email: 'test@test.com',
+          about_me: 'Test bio',
+        }),
       };
+      const mockUser = { emailVerified: true };
       const req = mockRequest({}, { id: 'user-id' });
       const res = mockResponse();
 
       profileService.getProfileByUserId.mockResolvedValue(mockProfile);
+      User.findById.mockReturnValue({
+        select: vi.fn().mockResolvedValue(mockUser),
+      });
 
       await profileController.getMyProfile(req, res, mockNext);
 
       expect(profileService.getProfileByUserId).toHaveBeenCalledWith('user-id');
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(mockProfile);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-id',
+          emailVerified: true,
+        })
+      );
     });
 
     it('should return 404 if profile not found', async () => {
@@ -67,6 +91,9 @@ describe('ProfileController', () => {
       const res = mockResponse();
 
       profileService.getProfileByUserId.mockResolvedValue(null);
+      User.findById.mockReturnValue({
+        select: vi.fn().mockResolvedValue({ emailVerified: false }),
+      });
 
       await profileController.getMyProfile(req, res, mockNext);
 
@@ -84,6 +111,9 @@ describe('ProfileController', () => {
       const error = new Error('Database error');
 
       profileService.getProfileByUserId.mockRejectedValue(error);
+      User.findById.mockReturnValue({
+        select: vi.fn().mockResolvedValue(null),
+      });
 
       await profileController.getMyProfile(req, res, mockNext);
 

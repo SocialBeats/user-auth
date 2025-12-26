@@ -104,7 +104,10 @@ describe('ProfileService', () => {
 
       const result = await profileService.getProfileByUserId('user123');
 
-      expect(mockFindOne).toHaveBeenCalledWith({ userId: 'user123' });
+      expect(mockFindOne).toHaveBeenCalledWith(
+        { userId: 'user123' },
+        'userId username full_name avatar email'
+      );
       expect(result).toEqual(mockProfile);
     });
 
