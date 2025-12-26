@@ -136,6 +136,23 @@ export const getCircuitBreakerStatus = () => ({
   config: CIRCUIT_CONFIG,
 });
 
+// Funciones para testing
+export const resetCircuitBreaker = () => {
+  circuitBreaker.state = CircuitState.CLOSED;
+  circuitBreaker.failures = 0;
+  circuitBreaker.successes = 0;
+  circuitBreaker.lastFailureTime = null;
+  circuitBreaker.nextAttempt = null;
+};
+
+export const setCircuitBreakerState = (state, options = {}) => {
+  circuitBreaker.state = state;
+  if (options.failures !== undefined)
+    circuitBreaker.failures = options.failures;
+  if (options.nextAttempt !== undefined)
+    circuitBreaker.nextAttempt = options.nextAttempt;
+};
+
 // ============================================
 // CLIENTE DE RESEND
 // ============================================
