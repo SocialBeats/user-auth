@@ -1,5 +1,31 @@
 import { Resend } from 'resend';
+import Bottleneck from 'bottleneck';
 import logger from '../../logger.js';
+
+// ============================================
+// RATE LIMITER (Resend: máx 2 req/seg)
+// ============================================
+
+const emailLimiter = new Bottleneck({
+  reservoir: 2,
+  reservoirRefreshAmount: 2,
+  reservoirRefreshInterval: 1000,
+  maxConcurrent: 1,
+  minTime: 500,
+});
+
+emailLimiter.on('queued', () => {
+  const queued = emailLimiter.queued();
+  if (queued > 0) {
+    logger.info(`📧 Rate Limiter: ${queued} email(s) en cola`);
+  }
+});
+
+export const getRateLimiterStatus = () => ({
+  running: emailLimiter.running(),
+  queued: emailLimiter.queued(),
+  reservoir: emailLimiter.reservoir(),
+});
 
 // ============================================
 // CIRCUIT BREAKER
@@ -131,7 +157,7 @@ const getResendClient = () => {
 };
 
 /**
- * Envía un email usando el Circuit Breaker
+ * Envía un email usando Circuit Breaker + Rate Limiter
  * @param {Object} emailOptions - Opciones del email (from, to, subject, html)
  * @returns {Promise<Object>} - Resultado del envío
  * @throws {Error} - Si el circuito está abierto o el envío falla
@@ -149,20 +175,23 @@ const sendEmailWithCircuitBreaker = async (emailOptions) => {
     );
   }
 
-  try {
-    const { data, error } = await getResendClient().emails.send(emailOptions);
+  // Usar rate limiter para respetar el límite de 2 req/seg de Resend
+  return emailLimiter.schedule(async () => {
+    try {
+      const { data, error } = await getResendClient().emails.send(emailOptions);
 
-    if (error) {
+      if (error) {
+        recordFailure();
+        throw new Error(error.message);
+      }
+
+      recordSuccess();
+      return { success: true, messageId: data?.id };
+    } catch (error) {
       recordFailure();
-      throw new Error(error.message);
+      throw error;
     }
-
-    recordSuccess();
-    return { success: true, messageId: data?.id };
-  } catch (error) {
-    recordFailure();
-    throw error;
-  }
+  });
 };
 
 const FROM_EMAIL = process.env.EMAIL_FROM;
