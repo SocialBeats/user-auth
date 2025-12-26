@@ -308,8 +308,10 @@ export const requestPasswordReset = async (email) => {
     });
     logger.info(`Password reset email sent to: ${user.email}`);
   } catch (emailError) {
-    logger.error(`Failed to send password reset email: ${emailError.message}`);
-    throw new Error('Failed to send password reset email');
+    logger.error(
+      `Failed to send password reset email: ${emailError.message}`,
+      { error: emailError }
+    );
   }
 
   return { message: 'If the email exists, a reset link will be sent' };
