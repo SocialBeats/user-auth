@@ -204,7 +204,7 @@ const getEmailTemplate = ({ title, headerGradient, content, footerText }) => `
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 30px; text-align: center; background: ${headerGradient};">
-              <img src="https://user-s3-fis.fra1.cdn.digitaloceanspaces.com/logo-sin-fondo.png" alt="${APP_NAME}" style="height: 150px; margin-bottom: 16px;" />
+              <img src="https://user-s3-fis.fra1.cdn.digitaloceanspaces.com/logo-dark.png" alt="${APP_NAME}" style="height: 150px; margin-bottom: 16px;" />
               <h1 style="margin: 0; color: ${THEME.textMain}; font-size: 24px; font-weight: 700;">${title}</h1>
             </td>
           </tr>
