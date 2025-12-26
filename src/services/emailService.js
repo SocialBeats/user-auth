@@ -111,9 +111,15 @@ export const getCircuitBreakerStatus = () => ({
 });
 
 /**
- * Reset circuit breaker to initial state (for testing purposes)
+ * Reset circuit breaker to initial state (for testing purposes only)
+ * @private
  */
 export const resetCircuitBreaker = () => {
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      'resetCircuitBreaker is only available in test environment'
+    );
+  }
   circuitBreaker.state = CircuitState.CLOSED;
   circuitBreaker.failures = 0;
   circuitBreaker.successes = 0;
@@ -122,9 +128,15 @@ export const resetCircuitBreaker = () => {
 };
 
 /**
- * Set circuit breaker next attempt time (for testing purposes)
+ * Set circuit breaker next attempt time (for testing purposes only)
+ * @private
  */
 export const setCircuitBreakerNextAttempt = (time) => {
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      'setCircuitBreakerNextAttempt is only available in test environment'
+    );
+  }
   circuitBreaker.nextAttempt = time;
 };
 

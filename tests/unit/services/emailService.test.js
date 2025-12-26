@@ -88,7 +88,9 @@ describe('EmailService', () => {
 
         const status = getCircuitBreakerStatus();
         expect(status.state).toBe('OPEN');
-        expect(status.failures).toBeGreaterThanOrEqual(5); // Changed to be more flexible
+        // Circuit should open after reaching threshold (5 failures)
+        // Note: In some test environments, the count may be slightly higher due to timing
+        expect(status.failures).toBeGreaterThanOrEqual(5);
         expect(status.nextAttempt).toBeDefined();
         expect(logger.error).toHaveBeenCalledWith(
           expect.stringContaining('Circuit OPENED')
@@ -261,9 +263,10 @@ describe('EmailService', () => {
           verificationToken: 'token123',
         };
 
-        // Cause some failures (but below threshold - use 2 to be safe)
+        // Cause failures below threshold (threshold is 5, so use 2 failures)
+        const failuresToTrigger = 2;
         mockEmailsSend.mockResolvedValue({ error: { message: 'API Error' } });
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < failuresToTrigger; i++) {
           try {
             await sendVerificationEmail(emailData);
           } catch (error) {
@@ -272,11 +275,11 @@ describe('EmailService', () => {
         }
 
         let status = getCircuitBreakerStatus();
-        const failuresAfterErrors = status.failures;
-        expect(failuresAfterErrors).toBeGreaterThan(0);
+        // Note: Actual count may be higher than expected due to test isolation issues
+        expect(status.failures).toBeGreaterThanOrEqual(failuresToTrigger);
         expect(status.state).toBe('CLOSED');
 
-        // Successful request
+        // Successful request should reset failures to 0
         mockEmailsSend.mockResolvedValue({
           data: { id: 'msg-123' },
           error: null,
