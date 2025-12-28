@@ -46,7 +46,11 @@ export const getMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const profile = await profileService.getProfileByUserId(userId);
+    // Obtener perfil y estado de verificación del usuario
+    const [profile, user] = await Promise.all([
+      profileService.getProfileByUserId(userId),
+      User.findById(userId).select('emailVerified'),
+    ]);
 
     if (!profile) {
       return res.status(404).json({
@@ -55,7 +59,11 @@ export const getMyProfile = async (req, res, next) => {
       });
     }
 
-    res.status(200).json(profile);
+    // Incluir emailVerified en la respuesta
+    const profileData = profile.toObject ? profile.toObject() : { ...profile };
+    profileData.emailVerified = user?.emailVerified ?? false;
+
+    res.status(200).json(profileData);
   } catch (error) {
     logger.error(`Error fetching profile: ${error.message}`);
     next(error);
@@ -82,6 +90,30 @@ export const getProfileByUsername = async (req, res, next) => {
     res.status(200).json(profile);
   } catch (error) {
     logger.error(`Error fetching profile: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
+ * Obtiene el perfil de un usuario por userId
+ * @route GET /api/v1/profile/:userId
+ */
+export const getProfileByUserId = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    const profile = await profileService.getProfileByUserId(userId);
+
+    if (!profile) {
+      return res.status(404).json({
+        error: 'PROFILE_NOT_FOUND',
+        message: `Profile not found for userId ${userId}`,
+      });
+    }
+
+    res.status(200).json(profile);
+  } catch (error) {
+    logger.error(`Error fetching profile by userId: ${error.message}`);
     next(error);
   }
 };

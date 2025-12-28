@@ -303,6 +303,194 @@ export const revokeAll = async (req, res) => {
   }
 };
 
-/**
- * Controlador para buscar usuarios
- */
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        error: 'MISSING_TOKEN',
+        message: 'Verification token is required',
+      });
+    }
+
+    if (typeof token !== 'string') {
+      return res.status(400).json({
+        error: 'INVALID_DATA_TYPE',
+        message: 'Token must be a string',
+      });
+    }
+
+    const user = await authService.verifyEmail(token);
+
+    res.status(200).json({
+      message: 'Email verified successfully',
+      emailVerified: true,
+      username: user.username,
+    });
+  } catch (error) {
+    logger.error(`Email verification error: ${error.message}`);
+
+    if (
+      error.message.includes('Invalid') ||
+      error.message.includes('expired')
+    ) {
+      return res.status(400).json({
+        error: 'INVALID_TOKEN',
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      error: 'VERIFICATION_FAILED',
+      message: 'Email verification failed',
+    });
+  }
+};
+
+export const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        error: 'MISSING_EMAIL',
+        message: 'Email is required',
+      });
+    }
+
+    if (typeof email !== 'string') {
+      return res.status(400).json({
+        error: 'INVALID_DATA_TYPE',
+        message: 'Email must be a string',
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        error: 'INVALID_EMAIL',
+        message: 'Email format is invalid',
+      });
+    }
+
+    await authService.resendVerificationEmail(email);
+
+    res.status(200).json({
+      message: 'Verification email sent successfully',
+    });
+  } catch (error) {
+    logger.error(`Resend verification email error: ${error.message}`);
+
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    if (error.message === 'Email already verified') {
+      return res.status(400).json({
+        error: 'ALREADY_VERIFIED',
+        message: 'Email is already verified',
+      });
+    }
+
+    res.status(500).json({
+      error: 'RESEND_FAILED',
+      message: 'Failed to resend verification email',
+    });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        error: 'MISSING_EMAIL',
+        message: 'Email is required',
+      });
+    }
+
+    if (typeof email !== 'string') {
+      return res.status(400).json({
+        error: 'INVALID_DATA_TYPE',
+        message: 'Email must be a string',
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        error: 'INVALID_EMAIL',
+        message: 'Email format is invalid',
+      });
+    }
+
+    await authService.requestPasswordReset(email);
+
+    res.status(200).json({
+      message: 'If the email exists, a reset link will be sent',
+    });
+  } catch (error) {
+    logger.error(`Forgot password error: ${error.message}`);
+
+    res.status(200).json({
+      message: 'If the email exists, a reset link will be sent',
+    });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        error: 'MISSING_FIELDS',
+        message: 'Token and password are required',
+        details: {
+          token: !token ? 'Reset token is required' : undefined,
+          password: !password ? 'New password is required' : undefined,
+        },
+      });
+    }
+
+    if (typeof token !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        error: 'INVALID_DATA_TYPE',
+        message: 'Token and password must be strings',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'INVALID_PASSWORD',
+        message: 'Password must be at least 6 characters long',
+      });
+    }
+
+    await authService.resetPassword(token, password);
+
+    res.status(200).json({
+      message: 'Password reset successfully',
+    });
+  } catch (error) {
+    logger.error(`Reset password error: ${error.message}`);
+
+    if (
+      error.message.includes('Invalid') ||
+      error.message.includes('expired')
+    ) {
+      return res.status(400).json({
+        error: 'INVALID_TOKEN',
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      error: 'RESET_FAILED',
+      message: 'Password reset failed',
+    });
+  }
+};

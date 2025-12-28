@@ -25,6 +25,28 @@ const userSchema = new mongoose.Schema(
       default: ['beatmaker'],
       enum: ['beatmaker', 'admin'],
     },
+    // Campos para verificación de email
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+    },
+    // Campos para reset de contraseña
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -50,10 +72,14 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Método para limpiar el objeto (nunca devolver la password al frontend)
+// Método para limpiar el objeto (nunca devolver campos sensibles al frontend)
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
+  delete user.emailVerificationToken;
+  delete user.emailVerificationExpires;
+  delete user.passwordResetToken;
+  delete user.passwordResetExpires;
   return user;
 };
 

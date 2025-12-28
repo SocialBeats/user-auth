@@ -12,6 +12,8 @@
     "test": "cross-env NODE_ENV=test vitest --run",
     "test:watch": "cross-env NODE_ENV=test vitest --watch",
     "test:coverage": "cross-env NODE_ENV=test vitest --coverage --run",
+    "test:unit": "cross-env NODE_ENV=test vitest --run tests/unit",
+    "test:unit:coverage": "cross-env NODE_ENV=test vitest --coverage --run tests/unit",
     "lint": "prettier --check '**/*.{cjs,js,ts,css,md}'",
     "lint:fix": "prettier --write '**/*.{cjs,js,ts,css,md}'",
     "prepare": "husky"
@@ -27,6 +29,7 @@
     "@aws-sdk/s3-request-presigner": "^3.946.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "bottleneck": "^2.19.5",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -36,6 +39,7 @@
     "kafkajs": "^2.2.4",
     "marked": "^17.0.0",
     "mongoose": "^8.19.3",
+    "resend": "^6.6.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.18.3"

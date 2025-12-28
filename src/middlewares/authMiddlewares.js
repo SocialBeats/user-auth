@@ -12,6 +12,10 @@ const openPaths = [
   '/api/v1/auth/refresh',
   '/api/v1/auth/logout', // Logout público (RFC 7009 - best effort revocation)
   '/api/v1/auth/validate-token', // Para que el gateway pueda validar tokens
+  '/api/v1/auth/forgot-password', // Solicitar reset de contraseña
+  '/api/v1/auth/reset-password', // Restablecer contraseña con token
+  '/api/v1/auth/verify-email', // Verificar email con token
+  '/api/v1/auth/resend-verification', // Reenviar correo de verificación
   '/api/v1/profile/internal/', // Rutas internas protegidas por API Key, no JWT
 ];
 

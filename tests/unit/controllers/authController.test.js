@@ -7,6 +7,10 @@ vi.mock('../../../src/services/authService.js', () => ({
   refreshAccessToken: vi.fn(),
   logoutUser: vi.fn(),
   revokeAllUserTokens: vi.fn(),
+  verifyEmail: vi.fn(),
+  resendVerificationEmail: vi.fn(),
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
 }));
 
 vi.mock('../../../logger.js', () => ({
@@ -22,10 +26,11 @@ import * as authController from '../../../src/controllers/authController.js';
 import * as authService from '../../../src/services/authService.js';
 
 // Mock Express req/res
-const mockRequest = (body = {}, user = null, params = {}) => ({
+const mockRequest = (body = {}, user = null, params = {}, query = {}) => ({
   body,
   user,
   params,
+  query,
 });
 
 const mockResponse = () => {
@@ -674,6 +679,202 @@ describe('AuthController', () => {
           error: 'REVOKE_FAILED',
         })
       );
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('should verify email successfully', async () => {
+      const req = mockRequest({}, null, {}, { token: 'valid-token' });
+      const res = mockResponse();
+
+      authService.verifyEmail.mockResolvedValue({
+        email: 'test@test.com',
+        username: 'testuser',
+      });
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          emailVerified: true,
+        })
+      );
+    });
+
+    it('should return 400 if token is missing', async () => {
+      const req = mockRequest({}, null, {}, {});
+      const res = mockResponse();
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'MISSING_TOKEN',
+        })
+      );
+    });
+
+    it('should return 400 for invalid token', async () => {
+      const req = mockRequest({}, null, {}, { token: 'invalid' });
+      const res = mockResponse();
+
+      authService.verifyEmail.mockRejectedValue(
+        new Error('Invalid or expired verification token')
+      );
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('resendVerificationEmail', () => {
+    it('should resend verification email successfully', async () => {
+      const req = mockRequest({ email: 'test@test.com' });
+      const res = mockResponse();
+
+      authService.resendVerificationEmail.mockResolvedValue({
+        message: 'Verification email sent',
+      });
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should return 400 if email is missing', async () => {
+      const req = mockRequest({});
+      const res = mockResponse();
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'MISSING_EMAIL',
+        })
+      );
+    });
+
+    it('should return 400 for invalid email format', async () => {
+      const req = mockRequest({ email: 'invalid-email' });
+      const res = mockResponse();
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'INVALID_EMAIL',
+        })
+      );
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should handle forgot password request', async () => {
+      const req = mockRequest({ email: 'test@test.com' });
+      const res = mockResponse();
+
+      authService.requestPasswordReset.mockResolvedValue({});
+
+      await authController.forgotPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'If the email exists, a reset link will be sent',
+      });
+    });
+
+    it('should return 400 if email is missing', async () => {
+      const req = mockRequest({});
+      const res = mockResponse();
+
+      await authController.forgotPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'MISSING_EMAIL',
+        })
+      );
+    });
+
+    it('should always return 200 even on error (security)', async () => {
+      const req = mockRequest({ email: 'nonexistent@test.com' });
+      const res = mockResponse();
+
+      authService.requestPasswordReset.mockRejectedValue(
+        new Error('User not found')
+      );
+
+      await authController.forgotPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password successfully', async () => {
+      const req = mockRequest({
+        token: 'valid-token',
+        password: 'newpassword123',
+      });
+      const res = mockResponse();
+
+      authService.resetPassword.mockResolvedValue({
+        message: 'Password reset successful',
+      });
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Password reset successfully',
+      });
+    });
+
+    it('should return 400 if fields are missing', async () => {
+      const req = mockRequest({ token: 'token' });
+      const res = mockResponse();
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'MISSING_FIELDS',
+        })
+      );
+    });
+
+    it('should return 400 if password is too short', async () => {
+      const req = mockRequest({ token: 'token', password: '123' });
+      const res = mockResponse();
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'INVALID_PASSWORD',
+        })
+      );
+    });
+
+    it('should return 400 for invalid token', async () => {
+      const req = mockRequest({ token: 'invalid', password: 'newpassword123' });
+      const res = mockResponse();
+
+      authService.resetPassword.mockRejectedValue(
+        new Error('Invalid or expired reset token')
+      );
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 });
