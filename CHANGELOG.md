@@ -1,3 +1,35 @@
+# Release v0.0.6
+
+## Features
+- feat: rate limit with bottleneck
+- feat: update .env with internal api key
+- feat: API integration email and new features
+- feat: new endpoint
+
+## Tests
+- test: augmented coverage
+
+## Documentation
+No documentation changes.
+## Fixes
+- fix: other image
+- fix: only unit tests in CI
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #47 from SocialBeats/develop
+- Merge pull request #45 from SocialBeats/feat/email-features
+- Merge branch 'feat/email-features' of https://github.com/SocialBeats/user-auth into feat/email-features
+- Update src/services/authService.js
+- Merge pull request #44 from SocialBeats/update-env
+- Merge pull request #43 from SocialBeats/fix/tests-ci
+- Merge pull request #42 from SocialBeats/feat/danigalvanmehapedidounendpointyselohehecho
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.5...v0.0.6).
+
 # Release v0.0.5
 
 ## Features
