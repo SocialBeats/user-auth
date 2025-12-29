@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock dependencies
 vi.mock('../../../src/services/profileService.js', () => ({
   getProfileByUserId: vi.fn(),
+  getFullProfileByUserId: vi.fn(),
   getProfileByUsername: vi.fn(),
   updateProfile: vi.fn(),
   deleteProfile: vi.fn(),
@@ -69,14 +70,16 @@ describe('ProfileController', () => {
       const req = mockRequest({}, { id: 'user-id' });
       const res = mockResponse();
 
-      profileService.getProfileByUserId.mockResolvedValue(mockProfile);
+      profileService.getFullProfileByUserId.mockResolvedValue(mockProfile);
       User.findById.mockReturnValue({
         select: vi.fn().mockResolvedValue(mockUser),
       });
 
       await profileController.getMyProfile(req, res, mockNext);
 
-      expect(profileService.getProfileByUserId).toHaveBeenCalledWith('user-id');
+      expect(profileService.getFullProfileByUserId).toHaveBeenCalledWith(
+        'user-id'
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -90,7 +93,7 @@ describe('ProfileController', () => {
       const req = mockRequest({}, { id: 'user-id' });
       const res = mockResponse();
 
-      profileService.getProfileByUserId.mockResolvedValue(null);
+      profileService.getFullProfileByUserId.mockResolvedValue(null);
       User.findById.mockReturnValue({
         select: vi.fn().mockResolvedValue({ emailVerified: false }),
       });
@@ -110,7 +113,7 @@ describe('ProfileController', () => {
       const res = mockResponse();
       const error = new Error('Database error');
 
-      profileService.getProfileByUserId.mockRejectedValue(error);
+      profileService.getFullProfileByUserId.mockRejectedValue(error);
       User.findById.mockReturnValue({
         select: vi.fn().mockResolvedValue(null),
       });
@@ -292,6 +295,96 @@ describe('ProfileController', () => {
         updateData
       );
       expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('getProfileByIdentifier', () => {
+    it('should detect ObjectId and call getFullProfileByUserId', async () => {
+      const mockProfile = {
+        userId: '507f1f77bcf86cd799439011',
+        username: 'testuser',
+        email: 'test@test.com',
+      };
+      const req = mockRequest({}, null, {
+        identifier: '507f1f77bcf86cd799439011',
+      });
+      const res = mockResponse();
+
+      profileService.getFullProfileByUserId.mockResolvedValue(mockProfile);
+
+      await profileController.getProfileByIdentifier(req, res, mockNext);
+
+      expect(profileService.getFullProfileByUserId).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockProfile);
+    });
+
+    it('should detect username and call getProfileByUsername', async () => {
+      const mockProfile = {
+        userId: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+      };
+      const req = mockRequest({}, null, { identifier: 'testuser' });
+      const res = mockResponse();
+
+      profileService.getProfileByUsername.mockResolvedValue(mockProfile);
+
+      await profileController.getProfileByIdentifier(req, res, mockNext);
+
+      expect(profileService.getProfileByUsername).toHaveBeenCalledWith(
+        'testuser'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockProfile);
+    });
+
+    it('should return 404 if profile not found by ObjectId', async () => {
+      const req = mockRequest({}, null, {
+        identifier: '507f1f77bcf86cd799439011',
+      });
+      const res = mockResponse();
+
+      profileService.getFullProfileByUserId.mockResolvedValue(null);
+
+      await profileController.getProfileByIdentifier(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'PROFILE_NOT_FOUND',
+        })
+      );
+    });
+
+    it('should return 404 if profile not found by username', async () => {
+      const req = mockRequest({}, null, { identifier: 'nonexistent' });
+      const res = mockResponse();
+
+      profileService.getProfileByUsername.mockResolvedValue(null);
+
+      await profileController.getProfileByIdentifier(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'PROFILE_NOT_FOUND',
+        })
+      );
+    });
+
+    it('should call next on error', async () => {
+      const req = mockRequest({}, null, { identifier: 'testuser' });
+      const res = mockResponse();
+      const error = new Error('Database error');
+
+      profileService.getProfileByUsername.mockRejectedValue(error);
+
+      await profileController.getProfileByIdentifier(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
 

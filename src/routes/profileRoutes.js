@@ -306,19 +306,19 @@ router.get('/search', profileController.searchProfiles);
 
 /**
  * @openapi
- * /api/v1/profile/{userId}:
+ * /api/v1/profile/{identifier}:
  *   get:
  *     tags:
  *       - Profile
- *     summary: Obtener perfil por userId
- *     description: Obtiene el perfil público de un usuario por su userId
+ *     summary: Obtener perfil por userId o username
+ *     description: Obtiene el perfil público de un usuario. Detecta automáticamente si el parámetro es un userId (ObjectId de 24 caracteres) o un username.
  *     parameters:
  *       - in: path
- *         name: userId
+ *         name: identifier
  *         required: true
  *         schema:
  *           type: string
- *         description: ID del usuario
+ *         description: userId (ObjectId) o username del usuario
  *     responses:
  *       200:
  *         description: Perfil obtenido exitosamente
@@ -352,30 +352,7 @@ router.get('/search', profileController.searchProfiles);
  *       404:
  *         description: Perfil no encontrado
  */
-router.get('/:userId', profileController.getProfileByUserId);
-
-/**
- * @openapi
- * /api/v1/profile/{username}:
- *   get:
- *     tags:
- *       - Profile
- *     summary: Obtener perfil por username
- *     description: Obtiene el perfil público de un usuario por su username
- *     parameters:
- *       - in: path
- *         name: username
- *         required: true
- *         schema:
- *           type: string
- *         description: Username del usuario
- *     responses:
- *       200:
- *         description: Perfil obtenido exitosamente
- *       404:
- *         description: Perfil no encontrado
- */
-router.get('/:username', profileController.getProfileByUsername);
+router.get('/:identifier', profileController.getProfileByIdentifier);
 
 export default (app) => {
   app.use('/api/v1/profile', router);

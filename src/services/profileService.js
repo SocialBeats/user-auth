@@ -55,7 +55,7 @@ export async function createProfile(userData) {
 }
 
 /**
- * Obtiene el perfil de un usuario por su userId
+ * Obtiene el perfil de un usuario por su userId (campos básicos para listados)
  * @param {String} userId - ID del usuario
  * @returns {Promise<Object|null>} - El perfil o null si no existe
  */
@@ -68,6 +68,23 @@ export async function getProfileByUserId(userId) {
     return profile;
   } catch (error) {
     logger.error(`Error fetching profile for user ${userId}: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Obtiene el perfil COMPLETO de un usuario por su userId (para el propio usuario)
+ * @param {String} userId - ID del usuario
+ * @returns {Promise<Object|null>} - El perfil completo o null si no existe
+ */
+export async function getFullProfileByUserId(userId) {
+  try {
+    const profile = await Profile.findOne({ userId });
+    return profile;
+  } catch (error) {
+    logger.error(
+      `Error fetching full profile for user ${userId}: ${error.message}`
+    );
     throw error;
   }
 }
@@ -101,9 +118,31 @@ export async function updateProfile(userId, updateData) {
     const restrictedFields = ['userId', 'username', 'email'];
     restrictedFields.forEach((field) => delete updateData[field]);
 
+    const flattenObject = (obj, prefix = '') => {
+      return Object.keys(obj).reduce((acc, key) => {
+        const prefixedKey = prefix ? `${prefix}.${key}` : key;
+        const value = obj[key];
+
+        if (
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          !(value instanceof Date) &&
+          !value._bsontype
+        ) {
+          Object.assign(acc, flattenObject(value, prefixedKey));
+        } else {
+          acc[prefixedKey] = value;
+        }
+        return acc;
+      }, {});
+    };
+
+    const flattenedUpdate = flattenObject(updateData);
+
     const profile = await Profile.findOneAndUpdate(
       { userId },
-      { $set: updateData },
+      { $set: flattenedUpdate },
       { new: true, runValidators: true }
     );
 
