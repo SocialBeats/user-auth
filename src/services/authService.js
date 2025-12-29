@@ -58,6 +58,44 @@ export const registerUser = async (userData) => {
     throw new Error('Failed to create user profile');
   }
 
+  // Crear contrato FREE en Payments Service
+  try {
+    const paymentsUrl =
+      process.env.PAYMENTS_SERVICE_URL ||
+      'http://localhost:3006/api/v1/payments';
+    const apiKey = process.env.INTERNAL_API_KEY;
+
+    if (apiKey) {
+      const response = await fetch(`${paymentsUrl}/internal/free-contract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          userId: user._id.toString(),
+          username: user.username,
+          plan: 'BASIC',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(
+          `Failed to create free contract for ${username}: ${response.status} ${errorText}`
+        );
+      } else {
+        logger.info(`Free contract created successfully for user ${username}`);
+      }
+    } else {
+      logger.warn('INTERNAL_API_KEY not set, skipping free contract creation');
+    }
+  } catch (contractError) {
+    logger.error(
+      `Error requesting free contract creation: ${contractError.message}`
+    );
+  }
+
   await publishUserEvent('USER_CREATED', {
     _id: user._id.toString(),
     username: user.username,
@@ -308,10 +346,9 @@ export const requestPasswordReset = async (email) => {
     });
     logger.info(`Password reset email sent to: ${user.email}`);
   } catch (emailError) {
-    logger.error(
-      `Failed to send password reset email: ${emailError.message}`,
-      { error: emailError }
-    );
+    logger.error(`Failed to send password reset email: ${emailError.message}`, {
+      error: emailError,
+    });
   }
 
   return { message: 'If the email exists, a reset link will be sent' };
