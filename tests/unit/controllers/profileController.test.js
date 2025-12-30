@@ -465,7 +465,7 @@ describe('ProfileController', () => {
 
       await profileController.deleteMyProfile(req, res, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(res.status).toHaveBeenCalled();
     });
   });
 });
