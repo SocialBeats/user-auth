@@ -11,6 +11,7 @@ vi.mock('../../../src/services/authService.js', () => ({
   resendVerificationEmail: vi.fn(),
   requestPasswordReset: vi.fn(),
   resetPassword: vi.fn(),
+  changePassword: vi.fn(),
 }));
 
 vi.mock('../../../logger.js', () => ({
@@ -875,6 +876,125 @@ describe('AuthController', () => {
       await authController.resetPassword(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should change password successfully', async () => {
+      const req = mockRequest(
+        { currentPassword: 'oldPassword123', newPassword: 'newPassword123' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      authService.changePassword.mockResolvedValue({
+        message: 'Password changed successfully',
+      });
+
+      await authController.changePassword(req, res);
+
+      expect(authService.changePassword).toHaveBeenCalledWith(
+        'user-123',
+        'oldPassword123',
+        'newPassword123'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Password changed successfully',
+      });
+    });
+
+    it('should return 401 if user is not authenticated', async () => {
+      const req = mockRequest({
+        currentPassword: 'old',
+        newPassword: 'new12345',
+      });
+      const res = mockResponse();
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'AUTHENTICATION_REQUIRED' })
+      );
+    });
+
+    it('should return 400 if currentPassword is missing', async () => {
+      const req = mockRequest(
+        { newPassword: 'newPassword123' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'MISSING_FIELDS' })
+      );
+    });
+
+    it('should return 400 if newPassword is missing', async () => {
+      const req = mockRequest(
+        { currentPassword: 'oldPassword' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 if newPassword is too short', async () => {
+      const req = mockRequest(
+        { currentPassword: 'oldPassword', newPassword: '1234567' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_PASSWORD' })
+      );
+    });
+
+    it('should return 401 if current password is incorrect', async () => {
+      const req = mockRequest(
+        { currentPassword: 'wrongPassword', newPassword: 'newPassword123' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      authService.changePassword.mockRejectedValue(
+        new Error('Current password is incorrect')
+      );
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INCORRECT_PASSWORD' })
+      );
+    });
+
+    it('should return 404 if user not found', async () => {
+      const req = mockRequest(
+        { currentPassword: 'oldPassword', newPassword: 'newPassword123' },
+        { id: 'nonexistent' }
+      );
+      const res = mockResponse();
+
+      authService.changePassword.mockRejectedValue(new Error('User not found'));
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'USER_NOT_FOUND' })
+      );
     });
   });
 });
