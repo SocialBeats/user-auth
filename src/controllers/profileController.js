@@ -192,25 +192,35 @@ export const updateMyProfile = async (req, res, next) => {
 };
 
 /**
- * Elimina el perfil del usuario autenticado
+ * Elimina permanentemente la cuenta del usuario autenticado
+ * Elimina User + Profile, revoca tokens y publica evento Kafka
  * @route DELETE /api/v1/profile/me
  */
 export const deleteMyProfile = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
-    await profileService.deleteProfile(userId);
+    if (!userId) {
+      return res.status(401).json({
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Authentication required to delete account',
+      });
+    }
+
+    const authService = await import('../services/authService.js');
+    const result = await authService.deleteUserAccount(userId);
 
     res.status(200).json({
-      message: 'Profile deleted successfully',
+      message: result.message,
+      deletedAt: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(`Error deleting profile: ${error.message}`);
+    logger.error(`Error deleting account: ${error.message}`);
 
-    if (error.message.includes('not found')) {
+    if (error.code === 'USER_NOT_FOUND') {
       return res.status(404).json({
-        error: 'PROFILE_NOT_FOUND',
-        message: error.message,
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
       });
     }
 

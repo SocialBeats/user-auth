@@ -202,17 +202,36 @@ router.put('/me', profileController.updateMyProfile);
  *   delete:
  *     tags:
  *       - Profile
- *     summary: Eliminar mi perfil
- *     description: Elimina el perfil del usuario autenticado
+ *     summary: Eliminar mi cuenta permanentemente
+ *     description: |
+ *       Elimina permanentemente la cuenta del usuario autenticado.
+ *       Esta acción es IRREVERSIBLE. Elimina:
+ *       - La cuenta del usuario (User)
+ *       - El perfil asociado (Profile)
+ *       - Revoca todos los tokens activos
+ *       - Publica evento Kafka `USER_DELETED` para limpieza en otros microservicios
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Perfil eliminado exitosamente
+ *         description: Cuenta eliminada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Account deleted successfully
+ *                 deletedAt:
+ *                   type: string
+ *                   format: date-time
  *       401:
  *         description: No autenticado
  *       404:
- *         description: Perfil no encontrado
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error del servidor
  */
 router.delete('/me', profileController.deleteMyProfile);
 

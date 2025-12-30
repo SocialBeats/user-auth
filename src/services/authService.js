@@ -391,3 +391,55 @@ export const resetPassword = async (token, newPassword) => {
   logger.info(`Password reset successfully for user: ${user.username}`);
   return { message: 'Password reset successfully' };
 };
+
+/**
+ * Elimina permanentemente una cuenta de usuario y todos sus datos asociados
+ * @param {string} userId - ID del usuario a eliminar
+ * @returns {Object} - Resultado de la eliminación
+ */
+export const deleteUserAccount = async (userId) => {
+  // Import Profile here to avoid circular dependencies
+  const Profile = (await import('../models/Profile.js')).default;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.code = 'USER_NOT_FOUND';
+    throw error;
+  }
+
+  const { email, username } = user;
+
+  logger.info(`Starting account deletion for user: ${userId} (${username})`);
+
+  try {
+    await tokenService.revokeAllUserTokens(userId);
+    logger.info(`All tokens revoked for user: ${userId}`);
+  } catch (err) {
+    logger.warn(`Failed to revoke tokens for user ${userId}: ${err.message}`);
+  }
+
+  try {
+    await Profile.deleteOne({ userId });
+    logger.info(`Profile deleted for user: ${userId}`);
+  } catch (err) {
+    logger.warn(`Failed to delete profile for user ${userId}: ${err.message}`);
+  }
+
+  await User.deleteOne({ _id: userId });
+  logger.info(`User deleted: ${userId}`);
+
+  await publishUserEvent('USER_DELETED', {
+    userId,
+    email,
+    username,
+    reason: 'user_request',
+    deletedAt: new Date().toISOString(),
+  });
+
+  return {
+    success: true,
+    message: 'Account deleted successfully',
+    deletedUserId: userId,
+  };
+};
