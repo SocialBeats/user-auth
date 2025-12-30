@@ -39,6 +39,8 @@
     "kafkajs": "^2.2.4",
     "marked": "^17.0.0",
     "mongoose": "^8.19.3",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.4",
     "resend": "^6.6.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
