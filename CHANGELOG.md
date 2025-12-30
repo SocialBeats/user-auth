@@ -1,3 +1,30 @@
+# Release v0.0.7
+
+## Features
+- feat: added delete account feature
+- feat: command with payments
+- feat: updated endpoints and socialmedia handlers
+
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: fixed test
+- fix: incorrect redirection on email verification
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #54 from SocialBeats/develop
+- Merge pull request #53 from SocialBeats/feat/delete-account
+- Merge pull request #52 from SocialBeats/feat/suscription-command
+- Merge pull request #51 from SocialBeats/feat/socialmedia
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.6...v0.0.7).
+
 # Release v0.0.6
 
 ## Features
