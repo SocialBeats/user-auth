@@ -126,7 +126,7 @@ export const registerUser = async (userData) => {
  * Inicia sesión y genera tokens
  * @param {string} identifier - Username o email
  * @param {string} password - Contraseña del usuario
- * @returns {Object} - Objeto con accessToken, refreshToken y datos del usuario
+ * @returns {Object} - Objeto con accessToken, refreshToken y datos del usuario, o require2FA si tiene 2FA activo
  */
 export const loginUser = async (identifier, password) => {
   // Buscar por username o email
@@ -142,6 +142,19 @@ export const loginUser = async (identifier, password) => {
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new Error('Invalid credentials');
+  }
+
+  // Si el usuario tiene 2FA activado, devolver tempToken en lugar de tokens finales
+  if (user.isTwoFactorEnabled) {
+    const twoFactorService = await import('./twoFactorService.js');
+    const tempToken = await twoFactorService.generateTempToken(user);
+
+    logger.info(`User ${user.username} requires 2FA verification`);
+
+    return {
+      require2FA: true,
+      tempToken,
+    };
   }
 
   // Generar tokens usando Redis
@@ -390,6 +403,46 @@ export const resetPassword = async (token, newPassword) => {
 
   logger.info(`Password reset successfully for user: ${user.username}`);
   return { message: 'Password reset successfully' };
+};
+
+/**
+ * Cambia la contraseña de un usuario autenticado
+ * @param {string} userId - ID del usuario
+ * @param {string} currentPassword - Contraseña actual
+ * @param {string} newPassword - Nueva contraseña
+ * @returns {Object} - Mensaje de éxito
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new Error('Current password is incorrect');
+  }
+
+  if (newPassword.length < 8) {
+    throw new Error('New password must be at least 8 characters');
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  try {
+    await emailService.sendPasswordChangedEmail({
+      email: user.email,
+      username: user.username,
+    });
+  } catch (emailError) {
+    logger.warn(
+      `Failed to send password changed notification: ${emailError.message}`
+    );
+  }
+
+  logger.info(`Password changed for user: ${user.username}`);
+  return { message: 'Password changed successfully' };
 };
 
 /**

@@ -103,6 +103,7 @@ router.post('/register', authController.register);
  * /api/v1/auth/login:
  *   post:
  *     summary: Inicia sesión y obtiene tokens de acceso
+ *     description: Si el usuario tiene 2FA activado, devuelve 202 con tempToken para verificación
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -124,7 +125,7 @@ router.post('/register', authController.register);
  *                 example: mySecurePassword123
  *     responses:
  *       200:
- *         description: Login exitoso con tokens
+ *         description: Login exitoso con tokens (sin 2FA)
  *         content:
  *           application/json:
  *             schema:
@@ -141,6 +142,22 @@ router.post('/register', authController.register);
  *                   type: string
  *                   description: Token de actualización (expira en 7 días)
  *                   example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+ *       202:
+ *         description: Requiere verificación 2FA
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 2FA verification required
+ *                 require2FA:
+ *                   type: boolean
+ *                   example: true
+ *                 tempToken:
+ *                   type: string
+ *                   description: Token temporal para completar 2FA (expira en 5 minutos)
  *       400:
  *         description: Datos inválidos
  *         content:
@@ -539,6 +556,54 @@ router.post('/forgot-password', authController.forgotPassword);
  *                   type: string
  */
 router.post('/reset-password', authController.resetPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/change-password:
+ *   put:
+ *     summary: Cambia la contraseña del usuario autenticado
+ *     description: Permite a un usuario cambiar su contraseña proporcionando la contraseña actual
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 description: Contraseña actual
+ *                 example: myCurrentPassword123
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Nueva contraseña (mínimo 8 caracteres)
+ *                 example: myNewSecurePassword123
+ *     responses:
+ *       200:
+ *         description: Contraseña cambiada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         description: Campos faltantes o contraseña inválida
+ *       401:
+ *         description: No autenticado o contraseña actual incorrecta
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.put('/change-password', authController.changePassword);
 
 export default (app) => {
   app.use('/api/v1/auth', router);

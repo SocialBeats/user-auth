@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Users and Authentication Microservice
+  title: Microservice API
   version: v0.0.3
   description: This is an OAS description of this Microservice REST API
 servers:
@@ -325,6 +325,9 @@ paths:
   /api/v1/auth/login:
     post:
       summary: Inicia sesión y obtiene tokens de acceso
+      description: >-
+        Si el usuario tiene 2FA activado, devuelve 202 con tempToken para
+        verificación
       tags:
         - Auth
       requestBody:
@@ -347,7 +350,7 @@ paths:
                   example: mySecurePassword123
       responses:
         '200':
-          description: Login exitoso con tokens
+          description: Login exitoso con tokens (sin 2FA)
           content:
             application/json:
               schema:
@@ -364,6 +367,22 @@ paths:
                     type: string
                     description: Token de actualización (expira en 7 días)
                     example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+        '202':
+          description: Requiere verificación 2FA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 2FA verification required
+                  require2FA:
+                    type: boolean
+                    example: true
+                  tempToken:
+                    type: string
+                    description: Token temporal para completar 2FA (expira en 5 minutos)
         '400':
           description: Datos inválidos
           content:
@@ -741,6 +760,52 @@ paths:
                       - INVALID_PASSWORD
                   message:
                     type: string
+  /api/v1/auth/change-password:
+    put:
+      summary: Cambia la contraseña del usuario autenticado
+      description: >-
+        Permite a un usuario cambiar su contraseña proporcionando la contraseña
+        actual
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  description: Contraseña actual
+                  example: myCurrentPassword123
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: Nueva contraseña (mínimo 8 caracteres)
+                  example: myNewSecurePassword123
+      responses:
+        '200':
+          description: Contraseña cambiada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          description: Campos faltantes o contraseña inválida
+        '401':
+          description: No autenticado o contraseña actual incorrecta
+        '404':
+          description: Usuario no encontrado
   /api/v1/health:
     get:
       tags:
@@ -933,17 +998,42 @@ paths:
     delete:
       tags:
         - Profile
-      summary: Eliminar mi perfil
-      description: Elimina el perfil del usuario autenticado
+      summary: Eliminar mi cuenta permanentemente
+      description: >
+        Elimina permanentemente la cuenta del usuario autenticado.
+
+        Esta acción es IRREVERSIBLE. Elimina:
+
+        - La cuenta del usuario (User)
+
+        - El perfil asociado (Profile)
+
+        - Revoca todos los tokens activos
+
+        - Publica evento Kafka `USER_DELETED` para limpieza en otros
+        microservicios
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Perfil eliminado exitosamente
+          description: Cuenta eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account deleted successfully
+                  deletedAt:
+                    type: string
+                    format: date-time
         '401':
           description: No autenticado
         '404':
-          description: Perfil no encontrado
+          description: Usuario no encontrado
+        '500':
+          description: Error del servidor
   /api/v1/profile/me/completion-status:
     get:
       tags:
@@ -1068,19 +1158,21 @@ paths:
                           type: string
         '400':
           description: Término de búsqueda faltante
-  /api/v1/profile/{userId}:
+  /api/v1/profile/{identifier}:
     get:
       tags:
         - Profile
-      summary: Obtener perfil por userId
-      description: Obtiene el perfil público de un usuario por su userId
+      summary: Obtener perfil por userId o username
+      description: >-
+        Obtiene el perfil público de un usuario. Detecta automáticamente si el
+        parámetro es un userId (ObjectId de 24 caracteres) o un username.
       parameters:
         - in: path
-          name: userId
+          name: identifier
           required: true
           schema:
             type: string
-          description: ID del usuario
+          description: userId (ObjectId) o username del usuario
       responses:
         '200':
           description: Perfil obtenido exitosamente
@@ -1113,22 +1205,234 @@ paths:
                     type: array
         '404':
           description: Perfil no encontrado
-  /api/v1/profile/{username}:
+  /api/v1/auth/2fa/status:
     get:
+      summary: Obtiene el estado de 2FA del usuario
       tags:
-        - Profile
-      summary: Obtener perfil por username
-      description: Obtiene el perfil público de un usuario por su username
-      parameters:
-        - in: path
-          name: username
-          required: true
-          schema:
-            type: string
-          description: Username del usuario
+        - 2FA
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Perfil obtenido exitosamente
-        '404':
-          description: Perfil no encontrado
+          description: Estado de 2FA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    example: false
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/setup:
+    post:
+      summary: Inicia la configuración de 2FA
+      description: Genera el secreto TOTP y el código QR para escanear
+      tags:
+        - 2FA
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Setup iniciado con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 2FA setup initiated
+                  secret:
+                    type: string
+                    description: Secreto TOTP para introducir manualmente
+                    example: JBSWY3DPEHPK3PXP
+                  qrCode:
+                    type: string
+                    description: QR code en formato data URL (base64)
+                  otpauthUrl:
+                    type: string
+                    description: URL otpauth para configuración manual
+        '400':
+          description: 2FA ya está activado
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/enable:
+    post:
+      summary: Activa 2FA después de verificar un código
+      description: Verifica el código OTP y activa 2FA, devuelve códigos de backup
+      tags:
+        - 2FA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Código OTP de 6 dígitos
+                  example: '123456'
+      responses:
+        '200':
+          description: 2FA activado con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 2FA enabled successfully
+                  enabled:
+                    type: boolean
+                    example: true
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+                    description: Códigos de backup de un solo uso
+        '400':
+          description: Código inválido o 2FA ya activado
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/disable:
+    post:
+      summary: Desactiva 2FA
+      description: Desactiva 2FA después de verificar un código OTP o backup
+      tags:
+        - 2FA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Código OTP de 6 dígitos o código de backup
+                  example: '123456'
+      responses:
+        '200':
+          description: 2FA desactivado con éxito
+        '400':
+          description: Código inválido o 2FA no activado
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/backup-codes:
+    get:
+      summary: Obtiene los códigos de backup restantes
+      tags:
+        - 2FA
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Códigos de backup
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+                  remaining:
+                    type: integer
+                    example: 8
+        '400':
+          description: 2FA no activado
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/regenerate-backup:
+    post:
+      summary: Regenera los códigos de backup
+      description: Genera nuevos códigos de backup después de verificar código OTP
+      tags:
+        - 2FA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Código OTP de 6 dígitos
+                  example: '123456'
+      responses:
+        '200':
+          description: Códigos regenerados con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Código inválido o 2FA no activado
+        '401':
+          description: No autenticado
+  /api/v1/auth/2fa/verify:
+    post:
+      summary: Verifica el código 2FA durante el login
+      description: Canjea el tempToken + código OTP por tokens de acceso
+      tags:
+        - 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tempToken
+                - code
+              properties:
+                tempToken:
+                  type: string
+                  description: Token temporal recibido en el login
+                code:
+                  type: string
+                  description: Código OTP de 6 dígitos o código de backup
+                  example: '123456'
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login successful
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Código o token inválido
 tags: []
