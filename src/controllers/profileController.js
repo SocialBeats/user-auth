@@ -46,9 +46,9 @@ export const getMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Obtener perfil y estado de verificación del usuario
+    // Obtener perfil COMPLETO y estado de verificación del usuario
     const [profile, user] = await Promise.all([
-      profileService.getProfileByUserId(userId),
+      profileService.getFullProfileByUserId(userId),
       User.findById(userId).select('emailVerified'),
     ]);
 
@@ -72,7 +72,7 @@ export const getMyProfile = async (req, res, next) => {
 
 /**
  * Obtiene el perfil de un usuario por username
- * @route GET /api/v1/profile/:username
+ * @route GET /api/v1/profile/username/:username
  */
 export const getProfileByUsername = async (req, res, next) => {
   try {
@@ -96,7 +96,7 @@ export const getProfileByUsername = async (req, res, next) => {
 
 /**
  * Obtiene el perfil de un usuario por userId
- * @route GET /api/v1/profile/:userId
+ * @route GET /api/v1/profile/user/:userId
  */
 export const getProfileByUserId = async (req, res, next) => {
   try {
@@ -114,6 +114,40 @@ export const getProfileByUserId = async (req, res, next) => {
     res.status(200).json(profile);
   } catch (error) {
     logger.error(`Error fetching profile by userId: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
+ * Obtiene el perfil de un usuario - detecta automáticamente si es userId o username
+ * @route GET /api/v1/profile/:identifier
+ */
+export const getProfileByIdentifier = async (req, res, next) => {
+  try {
+    const { identifier } = req.params;
+    let profile;
+
+    // Check if identifier looks like a MongoDB ObjectId (24 hex characters)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(identifier);
+
+    if (isObjectId) {
+      // Try to find by userId
+      profile = await profileService.getFullProfileByUserId(identifier);
+    } else {
+      // Find by username
+      profile = await profileService.getProfileByUsername(identifier);
+    }
+
+    if (!profile) {
+      return res.status(404).json({
+        error: 'PROFILE_NOT_FOUND',
+        message: `Profile not found for ${isObjectId ? 'userId' : 'username'}: ${identifier}`,
+      });
+    }
+
+    res.status(200).json(profile);
+  } catch (error) {
+    logger.error(`Error fetching profile by identifier: ${error.message}`);
     next(error);
   }
 };
@@ -158,25 +192,35 @@ export const updateMyProfile = async (req, res, next) => {
 };
 
 /**
- * Elimina el perfil del usuario autenticado
+ * Elimina permanentemente la cuenta del usuario autenticado
+ * Elimina User + Profile, revoca tokens y publica evento Kafka
  * @route DELETE /api/v1/profile/me
  */
 export const deleteMyProfile = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
-    await profileService.deleteProfile(userId);
+    if (!userId) {
+      return res.status(401).json({
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Authentication required to delete account',
+      });
+    }
+
+    const authService = await import('../services/authService.js');
+    const result = await authService.deleteUserAccount(userId);
 
     res.status(200).json({
-      message: 'Profile deleted successfully',
+      message: result.message,
+      deletedAt: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error(`Error deleting profile: ${error.message}`);
+    logger.error(`Error deleting account: ${error.message}`);
 
-    if (error.message.includes('not found')) {
+    if (error.code === 'USER_NOT_FOUND') {
       return res.status(404).json({
-        error: 'PROFILE_NOT_FOUND',
-        message: error.message,
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
       });
     }
 

@@ -381,4 +381,84 @@ describe('AuthService', () => {
       expect(result).toBe(0);
     });
   });
+
+  describe('deleteUserAccount', () => {
+    const mockUserId = new mongoose.Types.ObjectId();
+    const mockUser = {
+      _id: mockUserId,
+      username: 'testuser',
+      email: 'test@test.com',
+    };
+
+    beforeEach(() => {
+      User.findById = vi.fn();
+      User.deleteOne = vi.fn();
+    });
+
+    it('should delete user account successfully', async () => {
+      User.findById.mockResolvedValue(mockUser);
+      User.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      tokenService.revokeAllUserTokens.mockResolvedValue(2);
+
+      const result = await authService.deleteUserAccount(mockUserId.toString());
+
+      expect(User.findById).toHaveBeenCalledWith(mockUserId.toString());
+      expect(tokenService.revokeAllUserTokens).toHaveBeenCalledWith(
+        mockUserId.toString()
+      );
+      expect(User.deleteOne).toHaveBeenCalledWith({
+        _id: mockUserId.toString(),
+      });
+      expect(result.message).toBe('Account deleted successfully');
+      expect(result.deletedUserId).toBe(mockUserId.toString());
+    });
+
+    it('should throw error with code USER_NOT_FOUND if user does not exist', async () => {
+      User.findById.mockResolvedValue(null);
+
+      await expect(
+        authService.deleteUserAccount('nonexistent-id')
+      ).rejects.toMatchObject({
+        message: 'User not found',
+        code: 'USER_NOT_FOUND',
+      });
+
+      expect(User.deleteOne).not.toHaveBeenCalled();
+    });
+
+    it('should continue deletion even if token revocation fails', async () => {
+      User.findById.mockResolvedValue(mockUser);
+      User.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      tokenService.revokeAllUserTokens.mockRejectedValue(
+        new Error('Redis error')
+      );
+
+      const result = await authService.deleteUserAccount(mockUserId.toString());
+
+      expect(result.message).toBe('Account deleted successfully');
+      expect(User.deleteOne).toHaveBeenCalled();
+    });
+
+    it('should continue deletion even if profile deletion fails', async () => {
+      User.findById.mockResolvedValue(mockUser);
+      User.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      tokenService.revokeAllUserTokens.mockResolvedValue(1);
+
+      const result = await authService.deleteUserAccount(mockUserId.toString());
+
+      expect(result.message).toBe('Account deleted successfully');
+      expect(User.deleteOne).toHaveBeenCalled();
+    });
+
+    it('should include user data in the returned result', async () => {
+      User.findById.mockResolvedValue(mockUser);
+      User.deleteOne.mockResolvedValue({ deletedCount: 1 });
+      tokenService.revokeAllUserTokens.mockResolvedValue(0);
+
+      const result = await authService.deleteUserAccount(mockUserId.toString());
+
+      expect(result.deletedUserId).toBe(mockUserId.toString());
+      expect(result.message).toBe('Account deleted successfully');
+    });
+  });
 });

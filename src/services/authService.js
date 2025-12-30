@@ -58,6 +58,44 @@ export const registerUser = async (userData) => {
     throw new Error('Failed to create user profile');
   }
 
+  // Crear contrato FREE en Payments Service
+  try {
+    const paymentsUrl =
+      process.env.PAYMENTS_SERVICE_URL ||
+      'http://localhost:3006/api/v1/payments';
+    const apiKey = process.env.INTERNAL_API_KEY;
+
+    if (apiKey) {
+      const response = await fetch(`${paymentsUrl}/internal/free-contract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          userId: user._id.toString(),
+          username: user.username,
+          plan: 'BASIC',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(
+          `Failed to create free contract for ${username}: ${response.status} ${errorText}`
+        );
+      } else {
+        logger.info(`Free contract created successfully for user ${username}`);
+      }
+    } else {
+      logger.warn('INTERNAL_API_KEY not set, skipping free contract creation');
+    }
+  } catch (contractError) {
+    logger.error(
+      `Error requesting free contract creation: ${contractError.message}`
+    );
+  }
+
   await publishUserEvent('USER_CREATED', {
     _id: user._id.toString(),
     username: user.username,
@@ -308,10 +346,9 @@ export const requestPasswordReset = async (email) => {
     });
     logger.info(`Password reset email sent to: ${user.email}`);
   } catch (emailError) {
-    logger.error(
-      `Failed to send password reset email: ${emailError.message}`,
-      { error: emailError }
-    );
+    logger.error(`Failed to send password reset email: ${emailError.message}`, {
+      error: emailError,
+    });
   }
 
   return { message: 'If the email exists, a reset link will be sent' };
@@ -353,4 +390,56 @@ export const resetPassword = async (token, newPassword) => {
 
   logger.info(`Password reset successfully for user: ${user.username}`);
   return { message: 'Password reset successfully' };
+};
+
+/**
+ * Elimina permanentemente una cuenta de usuario y todos sus datos asociados
+ * @param {string} userId - ID del usuario a eliminar
+ * @returns {Object} - Resultado de la eliminación
+ */
+export const deleteUserAccount = async (userId) => {
+  // Import Profile here to avoid circular dependencies
+  const Profile = (await import('../models/Profile.js')).default;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.code = 'USER_NOT_FOUND';
+    throw error;
+  }
+
+  const { email, username } = user;
+
+  logger.info(`Starting account deletion for user: ${userId} (${username})`);
+
+  try {
+    await tokenService.revokeAllUserTokens(userId);
+    logger.info(`All tokens revoked for user: ${userId}`);
+  } catch (err) {
+    logger.warn(`Failed to revoke tokens for user ${userId}: ${err.message}`);
+  }
+
+  try {
+    await Profile.deleteOne({ userId });
+    logger.info(`Profile deleted for user: ${userId}`);
+  } catch (err) {
+    logger.warn(`Failed to delete profile for user ${userId}: ${err.message}`);
+  }
+
+  await User.deleteOne({ _id: userId });
+  logger.info(`User deleted: ${userId}`);
+
+  await publishUserEvent('USER_DELETED', {
+    userId,
+    email,
+    username,
+    reason: 'user_request',
+    deletedAt: new Date().toISOString(),
+  });
+
+  return {
+    success: true,
+    message: 'Account deleted successfully',
+    deletedUserId: userId,
+  };
 };

@@ -440,7 +440,7 @@ export const sendWelcomeEmail = async ({ email, username }) => {
     <p style="margin: 0 0 8px; color: ${THEME.textMuted}; font-size: 15px; line-height: 1.6;">
       ¡Es hora de explorar y crear música increíble!
     </p>
-    ${getButtonHtml(`Ir a ${APP_NAME}`, FRONTEND_URL)}
+    ${getButtonHtml(`Ir a ${APP_NAME}`, FRONTEND_URL + '/')}
   `;
 
   try {

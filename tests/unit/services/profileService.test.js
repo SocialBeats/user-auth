@@ -153,6 +153,46 @@ describe('ProfileService', () => {
     });
   });
 
+  describe('getFullProfileByUserId', () => {
+    it('should return full profile for existing user', async () => {
+      const mockProfile = {
+        userId: 'user123',
+        username: 'testuser',
+        email: 'test@test.com',
+        about_me: 'Test bio',
+        contact: {
+          phone: '123456789',
+          social_media: {
+            spotify: 'https://spotify.com/user/test',
+          },
+        },
+      };
+
+      mockFindOne.mockResolvedValue(mockProfile);
+
+      const result = await profileService.getFullProfileByUserId('user123');
+
+      expect(mockFindOne).toHaveBeenCalledWith({ userId: 'user123' });
+      expect(result).toEqual(mockProfile);
+    });
+
+    it('should return null if profile not found', async () => {
+      mockFindOne.mockResolvedValue(null);
+
+      const result = await profileService.getFullProfileByUserId('nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('should propagate database errors', async () => {
+      mockFindOne.mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        profileService.getFullProfileByUserId('user123')
+      ).rejects.toThrow('Database error');
+    });
+  });
+
   describe('updateProfile', () => {
     const userId = 'user123';
 
@@ -210,7 +250,7 @@ describe('ProfileService', () => {
       ).rejects.toThrow(`Profile not found for user ${userId}`);
     });
 
-    it('should update nested contact fields', async () => {
+    it('should flatten nested contact fields using dot notation', async () => {
       const updateData = {
         contact: {
           phone: '123456789',
@@ -228,9 +268,49 @@ describe('ProfileService', () => {
 
       await profileService.updateProfile(userId, updateData);
 
+      // Should use dot notation for nested fields
       expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
         { userId },
-        { $set: updateData },
+        {
+          $set: {
+            'contact.phone': '123456789',
+            'contact.city': 'Test City',
+            'contact.social_media.instagram': '@testuser',
+          },
+        },
+        { new: true, runValidators: true }
+      );
+    });
+
+    it('should update single social media field without overwriting others', async () => {
+      const updateData = {
+        contact: {
+          social_media: {
+            spotify: 'https://spotify.com/user/test',
+          },
+        },
+      };
+
+      mockFindOneAndUpdate.mockResolvedValue({
+        userId,
+        contact: {
+          phone: '123456789',
+          social_media: {
+            spotify: 'https://spotify.com/user/test',
+            soundcloud: 'https://soundcloud.com/test',
+          },
+        },
+      });
+
+      await profileService.updateProfile(userId, updateData);
+
+      expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+        { userId },
+        {
+          $set: {
+            'contact.social_media.spotify': 'https://spotify.com/user/test',
+          },
+        },
         { new: true, runValidators: true }
       );
     });

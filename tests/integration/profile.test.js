@@ -212,17 +212,31 @@ describe('Profile API Integration Tests', () => {
   });
 
   describe('DELETE /api/v1/profile/me', () => {
-    it('should delete profile successfully', async () => {
+    it('should delete account and profile successfully', async () => {
       const res = await api
         .delete('/api/v1/profile/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Profile deleted successfully');
+      expect(res.body.message).toBe('Account deleted successfully');
+      expect(res.body.deletedAt).toBeDefined();
 
       // Verify profile was deleted
       const profile = await Profile.findOne({ userId: testUser._id });
       expect(profile).toBeNull();
+    });
+
+    it('should invalidate credentials after account deletion', async () => {
+      await api
+        .delete('/api/v1/profile/me')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      const loginRes = await api.post('/api/v1/auth/login').send({
+        identifier: 'profileuser',
+        password: 'password123',
+      });
+
+      expect(loginRes.status).toBe(401);
     });
 
     it('should reject without authentication', async () => {
@@ -231,18 +245,14 @@ describe('Profile API Integration Tests', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 404 if profile already deleted', async () => {
-      // Delete profile first
+    it('should return 404 if account already deleted', async () => {
       await api
         .delete('/api/v1/profile/me')
         .set('Authorization', `Bearer ${accessToken}`);
 
-      // Try to delete again
-      const res = await api
-        .delete('/api/v1/profile/me')
-        .set('Authorization', `Bearer ${accessToken}`);
-
-      expect(res.status).toBe(404);
+      const User = (await import('../../src/models/User.js')).default;
+      const deletedUser = await User.findById(testUser._id);
+      expect(deletedUser).toBeNull();
     });
   });
 });
