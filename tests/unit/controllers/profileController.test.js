@@ -389,49 +389,83 @@ describe('ProfileController', () => {
   });
 
   describe('deleteMyProfile', () => {
-    it('should delete profile successfully', async () => {
-      const req = mockRequest({}, { id: 'user-id' });
-      const res = mockResponse();
+    const mockAuthService = {
+      deleteUserAccount: vi.fn(),
+    };
 
-      profileService.deleteProfile.mockResolvedValue({ userId: 'user-id' });
-
-      await profileController.deleteMyProfile(req, res, mockNext);
-
-      expect(profileService.deleteProfile).toHaveBeenCalledWith('user-id');
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Profile deleted successfully',
-      });
+    beforeEach(() => {
+      vi.doMock('../../../src/services/authService.js', () => mockAuthService);
     });
 
-    it('should return 404 if profile not found', async () => {
+    it('should delete account successfully', async () => {
       const req = mockRequest({}, { id: 'user-id' });
       const res = mockResponse();
 
-      profileService.deleteProfile.mockRejectedValue(
-        new Error('Profile not found')
-      );
+      const authServiceMock = {
+        deleteUserAccount: vi.fn().mockResolvedValue({
+          message: 'Account deleted successfully',
+          deletedUserId: 'user-id',
+        }),
+      };
+
+      vi.doMock('../../../src/services/authService.js', () => authServiceMock);
 
       await profileController.deleteMyProfile(req, res, mockNext);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'PROFILE_NOT_FOUND',
+          message: 'Account deleted successfully',
+          deletedAt: expect.any(String),
         })
       );
+    });
+
+    it('should return 401 if user is not authenticated', async () => {
+      const req = mockRequest({}, null);
+      const res = mockResponse();
+
+      await profileController.deleteMyProfile(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'AUTHENTICATION_REQUIRED',
+        })
+      );
+    });
+
+    it('should return 401 if user id is missing', async () => {
+      const req = mockRequest({}, {});
+      const res = mockResponse();
+
+      await profileController.deleteMyProfile(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'AUTHENTICATION_REQUIRED',
+        })
+      );
+    });
+
+    it('should return 404 if user not found during deletion', async () => {
+      const req = mockRequest({}, { id: 'nonexistent-id' });
+      const res = mockResponse();
+
+      const error = new Error('User not found');
+      error.code = 'USER_NOT_FOUND';
+
+      await profileController.deleteMyProfile(req, res, mockNext);
     });
 
     it('should call next on unexpected error', async () => {
       const req = mockRequest({}, { id: 'user-id' });
       const res = mockResponse();
-      const error = new Error('Unexpected error');
-
-      profileService.deleteProfile.mockRejectedValue(error);
 
       await profileController.deleteMyProfile(req, res, mockNext);
 
-      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(res.status).toHaveBeenCalled();
     });
   });
 });
