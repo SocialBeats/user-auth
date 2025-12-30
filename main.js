@@ -21,6 +21,7 @@ import authRoutes from './src/routes/authRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import profileRoutes from './src/routes/profileRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
+import twoFactorRoutes from './src/routes/twoFactorRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ authRoutes(app);
 adminRoutes(app);
 profileRoutes(app);
 uploadRoutes(app);
+twoFactorRoutes(app);
 
 // Export app for tests. Do not remove this line
 export default app;
