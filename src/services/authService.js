@@ -75,7 +75,8 @@ export const registerUser = async (userData) => {
         body: JSON.stringify({
           userId: user._id.toString(),
           username: user.username,
-          plan: 'BASIC',
+          email: user.email,
+          plan: 'FREE',
         }),
       });
 
