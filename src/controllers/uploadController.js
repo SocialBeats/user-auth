@@ -6,6 +6,7 @@ import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
 const ALLOWED_TYPES = {
   avatar: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   certification: ['application/pdf'],
+  banner: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
 };
 
 /**
@@ -28,7 +29,7 @@ export const getPresignedUrl = async (req, res) => {
     // Validar categoría
     if (!ALLOWED_TYPES[category]) {
       return res.status(400).json({
-        error: 'Categoría no válida. Use: avatar, certification',
+        error: 'Categoría no válida. Use: avatar, certification, banner',
       });
     }
 
@@ -46,7 +47,12 @@ export const getPresignedUrl = async (req, res) => {
       .replace(/^\.+/, '') // Remove leading dots
       .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace disallowed chars
       .substring(0, 255); // Limit length
-    const folder = category === 'certification' ? 'certifications' : 'avatars';
+    const folderMap = {
+      avatar: 'avatars',
+      certification: 'certifications',
+      banner: 'banners',
+    };
+    const folder = folderMap[category];
     const uniqueFileName = `${folder}/${Date.now()}-${sanitizedName}`;
 
     // Crear comando PUT con ACL público
