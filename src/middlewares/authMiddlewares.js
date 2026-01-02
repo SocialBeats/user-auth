@@ -18,6 +18,7 @@ const openPaths = [
   '/api/v1/auth/resend-verification', // Reenviar correo de verificación
   '/api/v1/auth/2fa/verify', // Verificar 2FA durante login (sin token aún)
   '/api/v1/profile/internal/', // Rutas internas protegidas por API Key, no JWT
+  '/api/v1/auth/internal/',
 ];
 
 const verifyToken = async (req, res, next) => {

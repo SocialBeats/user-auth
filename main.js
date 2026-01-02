@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import toobusy from 'toobusy-js';
 import logger from './logger.js';
 import { connectDB, disconnectDB } from './src/db.js';
 import { createRedisClient } from './src/config/redis.js';
@@ -29,10 +30,26 @@ dotenv.config({ path: path.resolve(__dirname, '.env'), quiet: true });
 
 const PORT = process.env.PORT || 3000;
 
+// Configurar toobusy con maxLag de 100ms
+toobusy.maxLag(100);
+
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+
+// Middleware de sobrecarga del servidor
+app.use((req, res, next) => {
+  if (toobusy()) {
+    logger.warn(`Server too busy - rejecting request to ${req.path}`);
+    res.set('x-retry-after', '5');
+    return res.status(503).json({
+      error: 'Service Unavailable',
+      message: 'Server is too busy, please try again later',
+    });
+  }
+  next();
+});
 
 // add your middlewares here like this:
 app.use(verifyToken);
@@ -74,6 +91,10 @@ if (process.env.NODE_ENV !== 'test') {
 
 async function gracefulShutdown(signal) {
   logger.warn(`${signal} received. Starting secure shutdown...`);
+
+  // Detener el interval de toobusy
+  toobusy.shutdown();
+  logger.info('Toobusy shutdown completed');
 
   try {
     if (isKafkaEnabled()) {

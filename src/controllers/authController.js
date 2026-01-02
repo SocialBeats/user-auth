@@ -564,3 +564,52 @@ export const changePassword = async (req, res) => {
     });
   }
 };
+
+/**
+ * Controlador interno para eliminar una cuenta de usuario
+ * Protegido por x-internal-api-key (no requiere JWT)
+ * El userId se recibe como parámetro de ruta
+ */
+export const deleteUserInternal = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    // Validación: userId requerido
+    if (!userId) {
+      return res.status(400).json({
+        error: 'MISSING_USER_ID',
+        message: 'User ID is required',
+      });
+    }
+
+    // Validar formato de ObjectId (24 caracteres hex)
+    const objectIdRegex = /^[a-fA-F0-9]{24}$/;
+    if (!objectIdRegex.test(userId)) {
+      return res.status(400).json({
+        error: 'INVALID_USER_ID',
+        message: 'Invalid user ID format',
+      });
+    }
+
+    const result = await authService.deleteUserAccount(userId);
+
+    res.status(200).json({
+      message: result.message,
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error(`Internal delete user error: ${error.message}`);
+
+    if (error.code === 'USER_NOT_FOUND') {
+      return res.status(404).json({
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    res.status(500).json({
+      error: 'DELETE_FAILED',
+      message: 'Failed to delete user account',
+    });
+  }
+};

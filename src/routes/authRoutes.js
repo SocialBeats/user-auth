@@ -5,6 +5,7 @@ import {
   requireAdmin,
   requireBeatmaker,
 } from '../middlewares/roleMiddleware.js';
+import { requireInternalApiKey } from '../middlewares/internalMiddleware.js';
 
 const router = express.Router();
 
@@ -604,6 +605,68 @@ router.post('/reset-password', authController.resetPassword);
  *         description: Usuario no encontrado
  */
 router.put('/change-password', authController.changePassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/internal/user/{id}:
+ *   delete:
+ *     summary: Elimina un usuario (endpoint interno)
+ *     description: |
+ *       Endpoint protegido por x-internal-api-key para uso entre microservicios.
+ *       Elimina permanentemente la cuenta del usuario, su perfil, revoca todos los tokens
+ *       y publica evento Kafka USER_DELETED.
+ *     tags: [Internal]
+ *     parameters:
+ *       - in: header
+ *         name: x-internal-api-key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: API Key interna para autenticación entre microservicios
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario a eliminar (MongoDB ObjectId)
+ *     responses:
+ *       200:
+ *         description: Usuario eliminado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Account deleted successfully
+ *                 deletedAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: ID de usuario inválido o faltante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   enum: [MISSING_USER_ID, INVALID_USER_ID]
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: API Key interna inválida o faltante
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
+router.delete(
+  '/internal/user/:id',
+  requireInternalApiKey,
+  authController.deleteUserInternal
+);
 
 export default (app) => {
   app.use('/api/v1/auth', router);
