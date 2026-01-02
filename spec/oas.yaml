@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Users and Authentication Microservice
-  version: v0.0.6
+  version: v0.0.3
   description: This is an OAS description of this Microservice REST API
 servers:
   - url: http://localhost:3000
@@ -68,7 +68,7 @@ paths:
                   error:
                     type: string
                     description: Detailed error message.
-                    example: "ENOENT: no such file or directory, open '.version'"
+                    example: 'ENOENT: no such file or directory, open ''.version'''
   /api/v1/changelog:
     get:
       tags:
@@ -806,6 +806,65 @@ paths:
           description: No autenticado o contraseña actual incorrecta
         '404':
           description: Usuario no encontrado
+  /api/v1/auth/internal/user/{id}:
+    delete:
+      summary: Elimina un usuario (endpoint interno)
+      description: >
+        Endpoint protegido por x-internal-api-key para uso entre microservicios.
+
+        Elimina permanentemente la cuenta del usuario, su perfil, revoca todos
+        los tokens
+
+        y publica evento Kafka USER_DELETED.
+      tags:
+        - Internal
+      parameters:
+        - in: header
+          name: x-internal-api-key
+          required: true
+          schema:
+            type: string
+          description: API Key interna para autenticación entre microservicios
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID del usuario a eliminar (MongoDB ObjectId)
+      responses:
+        '200':
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account deleted successfully
+                  deletedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: ID de usuario inválido o faltante
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - MISSING_USER_ID
+                      - INVALID_USER_ID
+                  message:
+                    type: string
+        '401':
+          description: API Key interna inválida o faltante
+        '404':
+          description: Usuario no encontrado
+        '500':
+          description: Error del servidor
   /api/v1/health:
     get:
       tags:
