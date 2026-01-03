@@ -15,4 +15,4 @@ export const s3Client = new S3Client({
 
 export const BUCKET_NAME = 'user-s3-fis';
 // Usar URL directa del bucket en lugar del CDN para evitar problemas de cache
-export const CDN_URL = 'https://user-s3-fis.fra1.cdn.digitaloceanspaces.com';
+export const CDN_URL = 'https://user-s3-fis.fra1.digitaloceanspaces.com';
