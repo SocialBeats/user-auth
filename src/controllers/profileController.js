@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import logger from '../../logger.js';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
+import { spaceClient } from '../utils/spaceConnection.js';
 
 /**
  * Extrae la key de S3 desde una URL y borra el archivo
@@ -195,6 +196,31 @@ export const updateMyProfile = async (req, res, next) => {
         error: 'INVALID_UPDATE',
         message: 'Cannot update userId, username, or email from profile',
       });
+    }
+
+    // Validar acceso a decoradores si se intenta actualizar avatarDecorator
+    if (updateData.avatarDecorator && updateData.avatarDecorator !== 'none') {
+      try {
+        const evaluationResult = await spaceClient.features.evaluate(
+          userId,
+          'socialbeats-decoratives',
+          {} // Sin consumption, solo evaluamos acceso
+        );
+
+        // Si eval es false, el usuario no tiene acceso a la feature
+        if (!evaluationResult.eval) {
+          return res.status(400).json({
+            error: 'FEATURE_NOT_AVAILABLE',
+            message:
+              'No tienes acceso a los decoradores. Mejora tu plan para desbloquear esta función.',
+          });
+        }
+      } catch (spaceError) {
+        logger.error(
+          `Error evaluando feature decoradores: ${spaceError.message}`
+        );
+        // En caso de error de Space, no bloqueamos la operación pero lo logueamos
+      }
     }
 
     // Si se está actualizando avatar o banner, borrar el anterior de S3
