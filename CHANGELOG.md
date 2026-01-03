@@ -1,3 +1,39 @@
+# Release v1.0.0
+
+## Features
+- feat: pricing adaptation back
+- feat: delete from s3 and cdn
+- feat: banner
+- feat: throttling and internal endpoint for command
+- feat: added new attribute to model
+- feat: added 2FA
+- feat: new dependencies
+
+## Tests
+- test: updated tests and added new feature tests
+
+## Documentation
+No documentation changes.
+## Fixes
+- fix: add email in payments command
+- fix: fixed names
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #59 from SocialBeats/develop
+- Merge pull request #58 from SocialBeats/feat/pricing-profile
+- Merge pull request #57 from SocialBeats/feat/personalized-banner
+- Merge branch 'develop' into feat/personalized-banner
+- Merge pull request #56 from SocialBeats/feat/pricing-adaptation
+- Merge branch 'develop' of https://github.com/SocialBeats/user-auth into develop
+- chore: update oas version
+- Merge pull request #55 from SocialBeats/feat/2FA
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v0.0.7...v1.0.0).
+
 # Release v0.0.7
 
 ## Features
