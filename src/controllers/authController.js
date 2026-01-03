@@ -133,6 +133,15 @@ export const login = async (req, res) => {
 
     const result = await authService.loginUser(identifier.trim(), password);
 
+    // Si requiere 2FA, devolver 202 con tempToken
+    if (result.require2FA) {
+      return res.status(202).json({
+        message: '2FA verification required',
+        require2FA: true,
+        tempToken: result.tempToken,
+      });
+    }
+
     res.status(200).json({
       message: 'Login successful',
       accessToken: result.accessToken,
@@ -491,6 +500,116 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({
       error: 'RESET_FAILED',
       message: 'Password reset failed',
+    });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Authentication required',
+      });
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: 'MISSING_FIELDS',
+        message: 'Current password and new password are required',
+        details: {
+          currentPassword: !currentPassword
+            ? 'Current password is required'
+            : undefined,
+          newPassword: !newPassword ? 'New password is required' : undefined,
+        },
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        error: 'INVALID_PASSWORD',
+        message: 'New password must be at least 8 characters long',
+      });
+    }
+
+    await authService.changePassword(userId, currentPassword, newPassword);
+
+    res.status(200).json({
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    logger.error(`Change password error: ${error.message}`);
+
+    if (error.message === 'Current password is incorrect') {
+      return res.status(401).json({
+        error: 'INCORRECT_PASSWORD',
+        message: 'Current password is incorrect',
+      });
+    }
+
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    res.status(500).json({
+      error: 'CHANGE_PASSWORD_FAILED',
+      message: 'Failed to change password',
+    });
+  }
+};
+
+/**
+ * Controlador interno para eliminar una cuenta de usuario
+ * Protegido por x-internal-api-key (no requiere JWT)
+ * El userId se recibe como parámetro de ruta
+ */
+export const deleteUserInternal = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    // Validación: userId requerido
+    if (!userId) {
+      return res.status(400).json({
+        error: 'MISSING_USER_ID',
+        message: 'User ID is required',
+      });
+    }
+
+    // Validar formato de ObjectId (24 caracteres hex)
+    const objectIdRegex = /^[a-fA-F0-9]{24}$/;
+    if (!objectIdRegex.test(userId)) {
+      return res.status(400).json({
+        error: 'INVALID_USER_ID',
+        message: 'Invalid user ID format',
+      });
+    }
+
+    const result = await authService.deleteUserAccount(userId);
+
+    res.status(200).json({
+      message: result.message,
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error(`Internal delete user error: ${error.message}`);
+
+    if (error.code === 'USER_NOT_FOUND') {
+      return res.status(404).json({
+        error: 'USER_NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    res.status(500).json({
+      error: 'DELETE_FAILED',
+      message: 'Failed to delete user account',
     });
   }
 };

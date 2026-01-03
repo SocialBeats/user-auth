@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { getPresignedUrl } from '../controllers/uploadController.js';
+import {
+  getPresignedUrl,
+  deleteCertification,
+} from '../controllers/uploadController.js';
 
 const router = Router();
 
@@ -11,6 +14,14 @@ const router = Router();
  * @query fileType - File MIME type
  */
 router.get('/presigned-url', getPresignedUrl);
+
+/**
+ * @route DELETE /certification/:certificationId
+ * @desc Delete a certification from S3 and profile
+ * @access Private (requires authentication)
+ * @param certificationId - The MongoDB _id of the certification to delete
+ */
+router.delete('/certification/:certificationId', deleteCertification);
 
 /**
  * Register upload routes

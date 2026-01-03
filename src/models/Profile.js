@@ -30,6 +30,22 @@ const profileSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    bannerURL: {
+      type: String,
+      default: '',
+    },
+    avatarDecorator: {
+      type: String,
+      enum: [
+        'none',
+        'green_ring',
+        'neon_ring',
+        'animated_ring',
+        'lightning_ring',
+        'lava_ring',
+      ],
+      default: 'none',
+    },
     full_name: {
       type: String,
       default: '',

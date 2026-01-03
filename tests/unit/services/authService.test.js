@@ -461,4 +461,62 @@ describe('AuthService', () => {
       expect(result.message).toBe('Account deleted successfully');
     });
   });
+
+  describe('changePassword', () => {
+    it('should change password successfully', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'oldHashedPassword',
+        comparePassword: vi.fn().mockResolvedValue(true),
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findById.mockResolvedValue(mockUser);
+
+      const result = await authService.changePassword(
+        'user-id',
+        'oldPassword',
+        'newPassword123'
+      );
+
+      expect(mockUser.comparePassword).toHaveBeenCalledWith('oldPassword');
+      expect(mockUser.password).toBe('newPassword123');
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(result.message).toBe('Password changed successfully');
+    });
+
+    it('should throw if user not found', async () => {
+      User.findById.mockResolvedValue(null);
+
+      await expect(
+        authService.changePassword('nonexistent', 'old', 'new12345')
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should throw if current password is incorrect', async () => {
+      const mockUser = {
+        comparePassword: vi.fn().mockResolvedValue(false),
+      };
+
+      User.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        authService.changePassword('user-id', 'wrongPassword', 'newPassword123')
+      ).rejects.toThrow('Current password is incorrect');
+    });
+
+    it('should throw if new password is too short', async () => {
+      const mockUser = {
+        comparePassword: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        authService.changePassword('user-id', 'oldPassword', 'short')
+      ).rejects.toThrow('New password must be at least 8 characters');
+    });
+  });
 });

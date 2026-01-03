@@ -255,7 +255,9 @@ export async function getProfileCompletionStatus(userId) {
       throw new Error(`Profile not found for user ${userId}`);
     }
 
-    // Definición de los 8 pasos
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId);
+    const is2FAEnabled = user?.isTwoFactorEnabled || false;
     const steps = [
       {
         id: 1,
@@ -319,6 +321,14 @@ export async function getProfileCompletionStatus(userId) {
       },
       {
         id: 8,
+        name: 'two_factor',
+        label: 'Autenticación de dos factores',
+        required: false,
+        skippable: true,
+        completed: is2FAEnabled,
+      },
+      {
+        id: 9,
         name: 'identity',
         label: 'Verificación de identidad',
         required: true,

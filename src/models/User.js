@@ -47,6 +47,19 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Campos para 2FA (Two-Factor Authentication)
+    twoFactorSecret: {
+      type: String,
+      default: null,
+    },
+    isTwoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    backupCodes: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -80,6 +93,8 @@ userSchema.methods.toJSON = function () {
   delete user.emailVerificationExpires;
   delete user.passwordResetToken;
   delete user.passwordResetExpires;
+  delete user.twoFactorSecret;
+  delete user.backupCodes;
   return user;
 };
 
