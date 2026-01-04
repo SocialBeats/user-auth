@@ -1,3 +1,23 @@
+# Release v1.0.2
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: User import in controller
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #61 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v1.0.1...v1.0.2).
+
 # Release v1.0.1
 
 ## Features
