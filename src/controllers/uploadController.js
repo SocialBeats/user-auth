@@ -35,7 +35,7 @@ export const getPresignedUrl = async (req, res) => {
       );
       console.log(token);
 
-      if (evaluationResult.eval) {
+      if (!evaluationResult.eval) {
         return res.status(400).json({
           error:
             'Has excedido tu límite de certificados para tu plan. Prueba a hacer upgrade a un plan superior.',
