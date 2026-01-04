@@ -1,5 +1,5 @@
 import * as profileService from '../services/profileService.js';
-import User from '../models/User.js';
+import Profile from '../models/Profile.js';
 import logger from '../../logger.js';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
@@ -35,30 +35,37 @@ export const updateVerificationStatus = async (req, res) => {
       `Actualizando estado de verificación para usuario: ${userId} a ${status}`
     );
 
-    const user = await User.findById(userId);
+    const profile = await Profile.findOne({ userId: userId });
 
-    if (!user) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!profile) {
+      logger.warn(
+        `Intento de verificación para perfil inexistente. Usuario: ${userId}`
+      );
+      return res
+        .status(404)
+        .json({ message: 'Perfil de usuario no encontrado' });
     }
 
     if (status === 'VERIFICADO') {
-      user.identityVerified = true;
-      // Podríamos guardar el provider_id si el modelo lo soportara
-      // user.verificationId = provider_id;
+      profile.identityVerified = true;
+      profile.verificationLevel = 'verified';
+      profile.identityVerificationDate = new Date();
     } else {
-      // Manejar otros estados si es necesario
-      user.identityVerified = false;
+      profile.identityVerified = false;
+      profile.verificationLevel = 'none';
+      profile.identityVerificationDate = null;
     }
 
-    await user.save();
+    await profile.save();
 
-    logger.info(`Estado de verificación actualizado para usuario: ${userId}`);
-    res
-      .status(200)
-      .json({ message: 'Estado de verificación actualizado correctamente' });
+    logger.info(`Perfil actualizado correctamente para usuario: ${userId}`);
+
+    return res.status(200).json({
+      message: 'Estado de verificación actualizado correctamente',
+    });
   } catch (error) {
     logger.error(`Error actualizando verificación: ${error.message}`);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    return res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 
