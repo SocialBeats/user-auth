@@ -1,3 +1,23 @@
+# Release v1.0.4
+
+## Features
+- feat: rollback to axios api call to space
+
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+No fixes added.
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #63 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v1.0.3...v1.0.4).
+
 # Release v1.0.3
 
 ## Features
