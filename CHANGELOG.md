@@ -1,3 +1,23 @@
+# Release v1.0.1
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: profile target instead of user for faas
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #60 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v1.0.0...v1.0.1).
+
 # Release v1.0.0
 
 ## Features
