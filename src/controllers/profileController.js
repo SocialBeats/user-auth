@@ -1,5 +1,6 @@
 import * as profileService from '../services/profileService.js';
 import Profile from '../models/Profile.js';
+import User from '../models/User.js';
 import logger from '../../logger.js';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
