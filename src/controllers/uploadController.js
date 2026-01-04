@@ -4,6 +4,7 @@ import { s3Client, BUCKET_NAME, CDN_URL } from '../config/s3.js';
 import { spaceClient } from '../utils/spaceConnection.js';
 import Profile from '../models/Profile.js';
 import logger from '../../logger.js';
+import axios from 'axios';
 
 // Tipos de archivo permitidos por categoría
 const ALLOWED_TYPES = {
@@ -159,14 +160,28 @@ export const deleteCertification = async (req, res) => {
       }
     }
 
-    // Decrementar contador en Space para liberar cuota (usando SDK)
+    // Decrementar contador en Space para liberar cuota (usando API directa con axios)
     try {
-      const result = await spaceClient.features.evaluate(
-        userId,
-        'socialbeats-certificates',
-        { 'socialbeats-maxCertificates': -1 }
+      const SPACE_URL = process.env.SPACE_URL || 'http://localhost:5403';
+      const SPACE_API_KEY = process.env.SPACE_API_KEY;
+
+      await axios.put(
+        `${SPACE_URL}/api/v1/contracts/${userId}/usageLevels`,
+        {
+          socialbeats: {
+            maxCertificates: -1,
+          },
+        },
+        {
+          headers: {
+            'x-api-key': SPACE_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
       );
-      logger.info(`Space evaluate result for user ${userId}:`, result);
+      logger.info(
+        `Contador de certificados decrementado para usuario ${userId}`
+      );
     } catch (spaceError) {
       // Log pero no fallar - no es crítico
       logger.warn(
