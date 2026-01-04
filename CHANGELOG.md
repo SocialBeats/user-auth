@@ -1,3 +1,23 @@
+# Release v1.0.3
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: boolean in space evaluation
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #62 from SocialBeats/develop
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v1.0.2...v1.0.3).
+
 # Release v1.0.2
 
 ## Features
