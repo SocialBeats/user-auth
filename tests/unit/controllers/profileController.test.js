@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('space-node-client', () => ({
+  connect: vi.fn(() => ({
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ allowed: true }),
+    },
+  })),
+}));
+
+vi.mock('../../../src/utils/spaceConnection.js', () => ({
+  spaceClient: {
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ allowed: true }),
+    },
+  },
+}));
+
 // Mock dependencies
 vi.mock('../../../src/services/profileService.js', () => ({
   getProfileByUserId: vi.fn(),
