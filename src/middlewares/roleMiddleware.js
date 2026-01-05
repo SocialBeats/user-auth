@@ -22,7 +22,7 @@ export const requireRoles = (allowedRoles) => {
       );
       return res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
-        message: 'Authentication required',
+        message: 'Autenticación requerida',
       });
     }
 
@@ -33,7 +33,7 @@ export const requireRoles = (allowedRoles) => {
       logger.warn(`Role check failed: User ${req.user.username} has no roles`);
       return res.status(403).json({
         error: 'NO_ROLES_ASSIGNED',
-        message: 'Access denied: No roles assigned',
+        message: 'Acceso denegado: No hay roles asignados',
       });
     }
 
@@ -48,7 +48,7 @@ export const requireRoles = (allowedRoles) => {
       );
       return res.status(403).json({
         error: 'NO_ROLES_ASSIGNED',
-        message: 'Access denied: Invalid roles format',
+        message: 'Acceso denegado: Formato de roles inválido',
       });
     }
 
@@ -63,7 +63,7 @@ export const requireRoles = (allowedRoles) => {
       );
       return res.status(403).json({
         error: 'INSUFFICIENT_PERMISSIONS',
-        message: 'Unauthorized: Insufficient role',
+        message: 'No autorizado: Rol incorrecto',
         required: allowedRoles,
         current: userRoles,
       });

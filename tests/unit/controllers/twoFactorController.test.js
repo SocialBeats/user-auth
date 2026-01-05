@@ -60,7 +60,7 @@ describe('TwoFactorController', () => {
     it('should handle errors correctly', async () => {
       mockReq = { user: { id: 'user-123' } };
       twoFactorService.generateSetup.mockRejectedValue(
-        new Error('2FA is already enabled')
+        new Error('2FA ya está activado')
       );
 
       await twoFactorController.setup2FA(mockReq, mockRes);
@@ -109,7 +109,7 @@ describe('TwoFactorController', () => {
     it('should handle errors', async () => {
       mockReq = { user: { id: 'user-123' }, body: { code: '123456' } };
       twoFactorService.disable2FA.mockRejectedValue(
-        new Error('2FA is not enabled')
+        new Error('2FA no está activado')
       );
 
       await twoFactorController.disable2FA(mockReq, mockRes);
@@ -174,7 +174,7 @@ describe('TwoFactorController', () => {
     it('should handle invalid token/code', async () => {
       mockReq = { body: { tempToken: 'invalid', code: '123456' } };
       twoFactorService.verifyAndGenerateTokens.mockRejectedValue(
-        new Error('Invalid or expired temp token')
+        new Error('Token temporal inválido o expirado')
       );
 
       await twoFactorController.verify2FA(mockReq, mockRes);

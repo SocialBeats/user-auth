@@ -24,11 +24,11 @@ const TEMP_TOKEN_EXPIRY = 5 * 60; // 5 minutos en segundos
 export const generateSetup = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (user.isTwoFactorEnabled) {
-    throw new Error('2FA is already enabled');
+    throw new Error('2FA ya está activado');
   }
 
   // Generar secreto
@@ -77,15 +77,15 @@ const generateBackupCodes = (count = 10) => {
 export const enable2FA = async (userId, code) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (user.isTwoFactorEnabled) {
-    throw new Error('2FA is already enabled');
+    throw new Error('2FA ya está activado');
   }
 
   if (!user.twoFactorSecret) {
-    throw new Error('2FA setup not initiated. Call /2fa/setup first');
+    throw new Error('2FA no iniciado. Llame a /2fa/setup primero');
   }
 
   // Verificar que el código es válido
@@ -95,7 +95,7 @@ export const enable2FA = async (userId, code) => {
   });
 
   if (!isValid) {
-    throw new Error('Invalid verification code');
+    throw new Error('Código de verificación inválido');
   }
 
   // Generar códigos de backup
@@ -123,11 +123,11 @@ export const enable2FA = async (userId, code) => {
 export const disable2FA = async (userId, code) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (!user.isTwoFactorEnabled) {
-    throw new Error('2FA is not enabled');
+    throw new Error('2FA no está activado');
   }
 
   // Verificar código OTP o backup
@@ -140,7 +140,7 @@ export const disable2FA = async (userId, code) => {
   const isValidBackup = backupCodeIndex !== -1;
 
   if (!isValidOTP && !isValidBackup) {
-    throw new Error('Invalid verification code');
+    throw new Error('Código de verificación inválido');
   }
 
   // Si usó un código de backup, eliminarlo
@@ -168,11 +168,11 @@ export const disable2FA = async (userId, code) => {
 export const verifyCode = async (userId, code) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (!user.isTwoFactorEnabled || !user.twoFactorSecret) {
-    throw new Error('2FA is not enabled for this user');
+    throw new Error('2FA no está activado para este usuario');
   }
 
   // Verificar código OTP
@@ -206,11 +206,11 @@ export const verifyCode = async (userId, code) => {
 export const getBackupCodes = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (!user.isTwoFactorEnabled) {
-    throw new Error('2FA is not enabled');
+    throw new Error('2FA no está activado');
   }
 
   return user.backupCodes;
@@ -225,11 +225,11 @@ export const getBackupCodes = async (userId) => {
 export const regenerateBackupCodes = async (userId, code) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (!user.isTwoFactorEnabled) {
-    throw new Error('2FA is not enabled');
+    throw new Error('2FA no está activado');
   }
 
   // Verificar código OTP
@@ -239,7 +239,7 @@ export const regenerateBackupCodes = async (userId, code) => {
   });
 
   if (!isValid) {
-    throw new Error('Invalid verification code');
+    throw new Error('Código de verificación inválido');
   }
 
   // Generar nuevos códigos de backup
@@ -292,7 +292,7 @@ export const verifyAndGenerateTokens = async (tempToken, code) => {
   // Obtener datos del token temporal
   const tempData = await redis.get(key);
   if (!tempData) {
-    throw new Error('Invalid or expired temp token');
+    throw new Error('Token temporal inválido o expirado');
   }
 
   const userData = JSON.parse(tempData);
@@ -300,7 +300,7 @@ export const verifyAndGenerateTokens = async (tempToken, code) => {
   // Verificar código OTP
   const isValid = await verifyCode(userData.userId, code);
   if (!isValid) {
-    throw new Error('Invalid verification code');
+    throw new Error('Código de verificación inválido');
   }
 
   // Eliminar token temporal
@@ -309,7 +309,7 @@ export const verifyAndGenerateTokens = async (tempToken, code) => {
   // Obtener el usuario completo para generar tokens
   const user = await User.findById(userData.userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   // Generar tokens finales

@@ -1,5 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('space-node-client', () => ({
+  connect: vi.fn(() => ({
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ eval: true }),
+      generateUserPricingToken: vi.fn().mockResolvedValue('test-pricing-token'),
+    },
+  })),
+}));
+
+vi.mock('../../../src/utils/spaceConnection.js', () => ({
+  spaceClient: {
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ eval: true }),
+      generateUserPricingToken: vi.fn().mockResolvedValue('test-pricing-token'),
+    },
+  },
+}));
+
+vi.mock('axios', () => ({
+  default: {
+    put: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 // Mock AWS SDK
 vi.mock('@aws-sdk/client-s3', () => ({
   PutObjectCommand: vi.fn().mockImplementation((params) => params),
@@ -20,8 +44,9 @@ import { getPresignedUrl } from '../../../src/controllers/uploadController.js';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Mock Express req/res
-const mockRequest = (query = {}) => ({
+const mockRequest = (query = {}, user = { id: 'test-user-id' }) => ({
   query,
+  user,
 });
 
 const mockResponse = () => {
@@ -108,7 +133,7 @@ describe('UploadController', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Missing parameters: fileName and fileType are required',
+        error: 'Faltan parámetros: fileName y fileType son requeridos',
       });
     });
 
@@ -135,7 +160,7 @@ describe('UploadController', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Categoría no válida. Use: avatar, certification',
+        error: 'Categoría no válida. Use: avatar, certification, banner',
       });
     });
 

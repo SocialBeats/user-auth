@@ -69,7 +69,7 @@ describe('AdminController', () => {
       });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Admin created successfully',
+        message: 'Administrador creado exitosamente',
       });
     });
 
@@ -128,7 +128,7 @@ describe('AdminController', () => {
       const res = mockResponse();
 
       authService.registerUser.mockRejectedValue(
-        new Error('Username already exists')
+        new Error('El nombre de usuario ya existe')
       );
 
       await adminController.createAdmin(req, res);
@@ -231,7 +231,9 @@ describe('AdminController', () => {
       const req = mockRequest({}, { id: 'nonexistent-id' });
       const res = mockResponse();
 
-      adminService.getUserById.mockRejectedValue(new Error('User not found'));
+      adminService.getUserById.mockRejectedValue(
+        new Error('Usuario no encontrado')
+      );
 
       await adminController.getUserById(req, res);
 
@@ -284,7 +286,7 @@ describe('AdminController', () => {
       const res = mockResponse();
 
       adminService.getUserByUsername.mockRejectedValue(
-        new Error('User not found')
+        new Error('Usuario no encontrado')
       );
 
       await adminController.getUserByUsername(req, res);
@@ -336,7 +338,7 @@ describe('AdminController', () => {
       );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'User updated successfully',
+        message: 'Usuario actualizado exitosamente',
         user: mockUpdatedUser,
       });
     });
@@ -349,7 +351,7 @@ describe('AdminController', () => {
       const res = mockResponse();
 
       adminService.updateUserByUsername.mockRejectedValue(
-        new Error('User not found')
+        new Error('Usuario no encontrado')
       );
 
       await adminController.updateUser(req, res);
@@ -396,7 +398,7 @@ describe('AdminController', () => {
       expect(adminService.deleteUser).toHaveBeenCalledWith('user-id');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'User deleted successfully',
+        message: 'Usuario eliminado exitosamente',
       });
     });
 
@@ -404,7 +406,9 @@ describe('AdminController', () => {
       const req = mockRequest({}, { id: 'nonexistent-id' });
       const res = mockResponse();
 
-      adminService.deleteUser.mockRejectedValue(new Error('User not found'));
+      adminService.deleteUser.mockRejectedValue(
+        new Error('Usuario no encontrado')
+      );
 
       await adminController.deleteUser(req, res);
 

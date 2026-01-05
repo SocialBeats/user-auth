@@ -76,7 +76,7 @@ describe('AuthMiddleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'You must specify the API version, e.g. /api/v1/...',
+        message: 'Debes especificar la versión de la API, ej. /api/v1/...',
       });
     });
   });
@@ -161,7 +161,7 @@ describe('AuthMiddleware', () => {
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
         error: 'MISSING_TOKEN',
-        message: 'Missing token',
+        message: 'Token no proporcionado',
       });
     });
 
@@ -178,7 +178,7 @@ describe('AuthMiddleware', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
         error: 'TOKEN_EXPIRED_OR_INVALID',
-        message: 'Invalid or expired token',
+        message: 'Token inválido o expirado',
       });
     });
   });

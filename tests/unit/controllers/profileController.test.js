@@ -1,5 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('space-node-client', () => ({
+  connect: vi.fn(() => ({
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ allowed: true }),
+    },
+  })),
+}));
+
+vi.mock('../../../src/utils/spaceConnection.js', () => ({
+  spaceClient: {
+    features: {
+      evaluate: vi.fn().mockResolvedValue({ allowed: true }),
+    },
+  },
+}));
+
 // Mock dependencies
 vi.mock('../../../src/services/profileService.js', () => ({
   getProfileByUserId: vi.fn(),
@@ -157,7 +173,7 @@ describe('ProfileController', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           error: 'PROFILE_NOT_FOUND',
-          message: 'Profile not found for user nonexistent',
+          message: 'Perfil no encontrado para el usuario nonexistent',
         })
       );
     });
@@ -403,7 +419,7 @@ describe('ProfileController', () => {
 
       const authServiceMock = {
         deleteUserAccount: vi.fn().mockResolvedValue({
-          message: 'Account deleted successfully',
+          message: 'Cuenta eliminada exitosamente',
           deletedUserId: 'user-id',
         }),
       };
@@ -415,7 +431,7 @@ describe('ProfileController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Account deleted successfully',
+          message: 'Cuenta eliminada exitosamente',
           deletedAt: expect.any(String),
         })
       );

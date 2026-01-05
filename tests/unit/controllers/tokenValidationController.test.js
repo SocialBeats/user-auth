@@ -78,7 +78,7 @@ describe('TokenValidationController', () => {
       expect(res.json).toHaveBeenCalledWith({
         valid: false,
         error: 'MISSING_TOKEN',
-        message: 'Token is required',
+        message: 'Token no proporcionado',
       });
     });
 
@@ -94,7 +94,7 @@ describe('TokenValidationController', () => {
       expect(res.json).toHaveBeenCalledWith({
         valid: false,
         error: 'INVALID_TOKEN',
-        message: 'Token is invalid or has been revoked',
+        message: 'El token es inválido o ha sido revocado',
       });
     });
 
@@ -112,7 +112,7 @@ describe('TokenValidationController', () => {
       expect(res.json).toHaveBeenCalledWith({
         valid: false,
         error: 'VALIDATION_FAILED',
-        message: 'Token validation failed',
+        message: 'Error en la validación del token',
       });
     });
 

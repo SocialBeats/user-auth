@@ -12,7 +12,7 @@ export const createAdmin = async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({
         error: 'MISSING_FIELDS',
-        message: 'Username, email and password are required',
+        message: 'Se necesitan el nombre de usuario, email y contraseña',
       });
     }
 
@@ -24,11 +24,11 @@ export const createAdmin = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Admin created successfully',
+      message: 'Administrador creado exitosamente',
     });
   } catch (error) {
     logger.error(`Admin creation error: ${error.message}`);
-    if (error.message.includes('exists')) {
+    if (error.message.includes('existe')) {
       return res.status(409).json({
         error: 'DUPLICATE_ENTRY',
         message: error.message,
@@ -36,7 +36,7 @@ export const createAdmin = async (req, res) => {
     }
     res.status(500).json({
       error: 'CREATION_FAILED',
-      message: 'Failed to create admin',
+      message: 'Error al crear el administrador',
     });
   }
 };
@@ -51,7 +51,7 @@ export const listUsers = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'FETCH_FAILED',
-      message: 'Failed to fetch users',
+      message: 'Error al obtener los usuarios',
     });
   }
 };
@@ -65,15 +65,15 @@ export const getUserById = async (req, res) => {
     const user = await adminService.getUserById(id);
     res.status(200).json(user);
   } catch (error) {
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
     res.status(500).json({
       error: 'FETCH_FAILED',
-      message: 'Failed to fetch user',
+      message: 'Error al obtener el usuario',
     });
   }
 };
@@ -87,15 +87,15 @@ export const getUserByUsername = async (req, res) => {
     const user = await adminService.getUserByUsername(username);
     res.status(200).json(user);
   } catch (error) {
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
     res.status(500).json({
       error: 'FETCH_FAILED',
-      message: 'Failed to fetch user',
+      message: 'Error al obtener el usuario',
     });
   }
 };
@@ -113,19 +113,19 @@ export const updateUser = async (req, res) => {
       updateData
     );
     res.status(200).json({
-      message: 'User updated successfully',
+      message: 'Usuario actualizado exitosamente',
       user: updatedUser,
     });
   } catch (error) {
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
     res.status(500).json({
       error: 'UPDATE_FAILED',
-      message: 'Failed to update user',
+      message: 'Error al actualizar el usuario',
     });
   }
 };
@@ -138,18 +138,18 @@ export const deleteUser = async (req, res) => {
     const { id } = req.params;
     await adminService.deleteUser(id);
     res.status(200).json({
-      message: 'User deleted successfully',
+      message: 'Usuario eliminado exitosamente',
     });
   } catch (error) {
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
     res.status(500).json({
       error: 'DELETE_FAILED',
-      message: 'Failed to delete user',
+      message: 'Error al eliminar el usuario',
     });
   }
 };
