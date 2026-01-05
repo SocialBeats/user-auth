@@ -21,10 +21,10 @@ export const registerUser = async (userData) => {
 
   if (existingUser) {
     if (existingUser.username === username) {
-      throw new Error('Username already exists');
+      throw new Error('El nombre de usuario ya existe');
     }
     if (existingUser.email === email) {
-      throw new Error('Email already exists');
+      throw new Error('El email ya existe');
     }
   }
 
@@ -55,7 +55,7 @@ export const registerUser = async (userData) => {
       `Failed to create profile for user ${username}, rolling back user creation`
     );
     await User.findByIdAndDelete(user._id);
-    throw new Error('Failed to create user profile');
+    throw new Error('Error al crear perfil');
   }
 
   // Crear contrato FREE en Payments Service
@@ -136,13 +136,13 @@ export const loginUser = async (identifier, password) => {
   });
 
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new Error('Credenciales inválidas');
   }
 
   // Verificar contraseña
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    throw new Error('Invalid credentials');
+    throw new Error('Credenciales inválidas');
   }
 
   // Si el usuario tiene 2FA activado, devolver tempToken en lugar de tokens finales
@@ -183,14 +183,14 @@ export const refreshAccessToken = async (refreshToken) => {
   const tokenData = await tokenService.validateRefreshToken(refreshToken);
 
   if (!tokenData) {
-    throw new Error('Invalid or expired refresh token');
+    throw new Error('Refresh token inválido o expirado');
   }
 
   // Obtener usuario de la base de datos
   const user = await User.findById(tokenData.userId);
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   // Generar nuevo access token
@@ -247,7 +247,7 @@ export const logoutUser = async (refreshToken, accessToken) => {
   );
 
   if (!refreshSuccess) {
-    throw new Error('Refresh token not found');
+    throw new Error('Refresh token no encontrado');
   }
 
   logger.info('User logged out successfully');
@@ -277,7 +277,7 @@ export const verifyEmail = async (token) => {
   });
 
   if (!user) {
-    throw new Error('Invalid or expired verification token');
+    throw new Error('Token de verificación inválido o expirado');
   }
 
   // Marcar email como verificado y limpiar tokens
@@ -308,11 +308,11 @@ export const resendVerificationEmail = async (email) => {
   const user = await User.findOne({ email: email.toLowerCase() });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   if (user.emailVerified) {
-    throw new Error('Email already verified');
+    throw new Error('Email ya verificado');
   }
 
   const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -329,7 +329,7 @@ export const resendVerificationEmail = async (email) => {
   });
 
   logger.info(`Verification email resent to: ${user.email}`);
-  return { message: 'Verification email sent' };
+  return { message: 'Email de verificación enviado' };
 };
 
 /**
@@ -342,7 +342,9 @@ export const requestPasswordReset = async (email) => {
 
   if (!user) {
     logger.info(`Password reset requested for non-existent email: ${email}`);
-    return { message: 'If the email exists, a reset link will be sent' };
+    return {
+      message: 'Si el email existe, se enviará un enlace de restablecimiento',
+    };
   }
 
   const resetToken = crypto.randomBytes(32).toString('hex');
@@ -365,7 +367,10 @@ export const requestPasswordReset = async (email) => {
     });
   }
 
-  return { message: 'If the email exists, a reset link will be sent' };
+  return {
+    message:
+      'Si el email existe, se enviará un enlace para reestablecer la contraseña',
+  };
 };
 
 /**
@@ -381,7 +386,7 @@ export const resetPassword = async (token, newPassword) => {
   });
 
   if (!user) {
-    throw new Error('Invalid or expired reset token');
+    throw new Error('Token de restablecimiento inválido o expirado');
   }
 
   user.password = newPassword;
@@ -403,7 +408,7 @@ export const resetPassword = async (token, newPassword) => {
   }
 
   logger.info(`Password reset successfully for user: ${user.username}`);
-  return { message: 'Password reset successfully' };
+  return { message: 'Contraseña restablecida exitosamente' };
 };
 
 /**
@@ -416,16 +421,16 @@ export const resetPassword = async (token, newPassword) => {
 export const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('Usuario no encontrado');
   }
 
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
-    throw new Error('Current password is incorrect');
+    throw new Error('Contraseña actual incorrecta');
   }
 
-  if (newPassword.length < 8) {
-    throw new Error('New password must be at least 8 characters');
+  if (newPassword.length < 6) {
+    throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
   }
 
   user.password = newPassword;
@@ -443,7 +448,7 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
   }
 
   logger.info(`Password changed for user: ${user.username}`);
-  return { message: 'Password changed successfully' };
+  return { message: 'Contraseña cambiada exitosamente' };
 };
 
 /**
@@ -457,7 +462,7 @@ export const deleteUserAccount = async (userId) => {
 
   const user = await User.findById(userId);
   if (!user) {
-    const error = new Error('User not found');
+    const error = new Error('Usuario no encontrado');
     error.code = 'USER_NOT_FOUND';
     throw error;
   }
@@ -493,7 +498,7 @@ export const deleteUserAccount = async (userId) => {
 
   return {
     success: true,
-    message: 'Account deleted successfully',
+    message: 'Cuenta eliminada exitosamente',
     deletedUserId: userId,
   };
 };

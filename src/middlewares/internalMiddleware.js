@@ -12,7 +12,7 @@ export const requireInternalApiKey = (req, res, next) => {
     logger.error('INTERNAL_API_KEY no está configurada en el entorno');
     return res.status(500).json({
       error: 'CONFIGURATION_ERROR',
-      message: 'Internal authentication configuration error',
+      message: 'Error de configuración en la autenticación interna',
     });
   }
 
@@ -22,7 +22,7 @@ export const requireInternalApiKey = (req, res, next) => {
     );
     return res.status(401).json({
       error: 'UNAUTHORIZED',
-      message: 'Invalid or missing internal API key',
+      message: 'API key interna inválida o no proporcionada',
     });
   }
 

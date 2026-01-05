@@ -12,11 +12,11 @@ export const register = async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({
         error: 'MISSING_FIELDS',
-        message: 'Username, email and password are required',
+        message: 'Se necesita el nombre de usuario, email y contraseña',
         details: {
-          username: !username ? 'Username is required' : undefined,
-          email: !email ? 'Email is required' : undefined,
-          password: !password ? 'Password is required' : undefined,
+          username: !username ? 'Introduzca el nombre de usuario' : undefined,
+          email: !email ? 'Introduzca el email' : undefined,
+          password: !password ? 'Introduzca la contraseña' : undefined,
         },
       });
     }
@@ -29,7 +29,7 @@ export const register = async (req, res) => {
     ) {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Username, email and password must be strings',
+        message: 'El nombre de usuario, email y contraseña deben ser texto',
       });
     }
 
@@ -37,14 +37,14 @@ export const register = async (req, res) => {
     if (username.trim().length < 3) {
       return res.status(400).json({
         error: 'INVALID_USERNAME',
-        message: 'Username must be at least 3 characters long',
+        message: 'El nombre de usuario debe tener al menos 3 caracteres',
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
         error: 'INVALID_PASSWORD',
-        message: 'Password must be at least 6 characters long',
+        message: 'La contraseña debe tener al menos 6 caracteres',
       });
     }
 
@@ -54,7 +54,7 @@ export const register = async (req, res) => {
     if (!emailRegex.test(trimmedEmail)) {
       return res.status(400).json({
         error: 'INVALID_EMAIL',
-        message: 'Email format is invalid',
+        message: 'El formato del email no es válido',
       });
     }
 
@@ -66,7 +66,7 @@ export const register = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'Usuario registrado exitosamente',
     });
   } catch (error) {
     logger.error(`Registration error: ${error.message}`);
@@ -75,21 +75,21 @@ export const register = async (req, res) => {
     if (error.message.includes('Username already exists')) {
       return res.status(409).json({
         error: 'USERNAME_EXISTS',
-        message: 'Username already exists',
+        message: 'El nombre de usuario ya existe',
       });
     }
 
     if (error.message.includes('Email already exists')) {
       return res.status(409).json({
         error: 'EMAIL_EXISTS',
-        message: 'Email already exists',
+        message: 'El email ya está registrado',
       });
     }
 
     // Error genérico del servidor
     res.status(500).json({
       error: 'REGISTRATION_FAILED',
-      message: 'Registration failed',
+      message: 'Error en el registro',
     });
   }
 };
@@ -105,12 +105,12 @@ export const login = async (req, res) => {
     if (!identifier || !password) {
       return res.status(400).json({
         error: 'MISSING_FIELDS',
-        message: 'Identifier and password are required',
+        message: 'Se necesita el identificador y contraseña',
         details: {
           identifier: !identifier
-            ? 'Identifier (username or email) is required'
+            ? 'Introduzca el identificador (usuario o email)'
             : undefined,
-          password: !password ? 'Password is required' : undefined,
+          password: !password ? 'Introduzca la contraseña' : undefined,
         },
       });
     }
@@ -119,7 +119,7 @@ export const login = async (req, res) => {
     if (typeof identifier !== 'string' || typeof password !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Identifier and password must be strings',
+        message: 'El identificador y contraseña deben ser texto',
       });
     }
 
@@ -127,7 +127,7 @@ export const login = async (req, res) => {
     if (identifier.trim().length === 0 || password.length === 0) {
       return res.status(400).json({
         error: 'EMPTY_FIELDS',
-        message: 'Identifier and password cannot be empty',
+        message: 'El identificador y contraseña no pueden estar vacíos',
       });
     }
 
@@ -136,14 +136,14 @@ export const login = async (req, res) => {
     // Si requiere 2FA, devolver 202 con tempToken
     if (result.require2FA) {
       return res.status(202).json({
-        message: '2FA verification required',
+        message: 'Se requiere verificación 2FA',
         require2FA: true,
         tempToken: result.tempToken,
       });
     }
 
     res.status(200).json({
-      message: 'Login successful',
+      message: 'Inicio de sesión exitoso',
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     });
@@ -151,17 +151,18 @@ export const login = async (req, res) => {
     logger.error(`Login error: ${error.message}`);
 
     // Error de credenciales inválidas
-    if (error.message === 'Invalid credentials') {
+    if (error.message === 'Credenciales inválidas') {
       return res.status(401).json({
         error: 'INVALID_CREDENTIALS',
-        message: 'Invalid credentials',
+        message:
+          'Credenciales inválidas, el identificador y/o la contraseña son incorrectos',
       });
     }
 
     // Error genérico del servidor
     res.status(500).json({
       error: 'LOGIN_FAILED',
-      message: 'Login failed',
+      message: 'Error en el inicio de sesión',
     });
   }
 };
@@ -177,7 +178,7 @@ export const refresh = async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({
         error: 'MISSING_REFRESH_TOKEN',
-        message: 'Refresh token is required',
+        message: 'Se necesita el refresh token',
       });
     }
 
@@ -185,7 +186,7 @@ export const refresh = async (req, res) => {
     if (typeof refreshToken !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Refresh token must be a string',
+        message: 'El refresh token debe ser texto',
       });
     }
 
@@ -193,14 +194,14 @@ export const refresh = async (req, res) => {
     if (refreshToken.trim().length === 0) {
       return res.status(400).json({
         error: 'EMPTY_REFRESH_TOKEN',
-        message: 'Refresh token cannot be empty',
+        message: 'El refresh token no puede estar vacío',
       });
     }
 
     const result = await authService.refreshAccessToken(refreshToken);
 
     res.status(200).json({
-      message: 'Token refreshed successfully',
+      message: 'Token actualizado exitosamente',
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     });
@@ -209,8 +210,8 @@ export const refresh = async (req, res) => {
 
     // Error de token inválido o expirado
     if (
-      error.message.includes('Invalid') ||
-      error.message.includes('expired')
+      error.message.includes('inválido') ||
+      error.message.includes('expirado')
     ) {
       return res.status(401).json({
         error: 'INVALID_REFRESH_TOKEN',
@@ -221,7 +222,7 @@ export const refresh = async (req, res) => {
     // Error genérico del servidor
     res.status(500).json({
       error: 'REFRESH_FAILED',
-      message: 'Token refresh failed',
+      message: 'Error al actualizar el token',
     });
   }
 };
@@ -237,7 +238,7 @@ export const logout = async (req, res) => {
     if (!refreshToken) {
       return res.status(400).json({
         error: 'MISSING_REFRESH_TOKEN',
-        message: 'Refresh token is required',
+        message: 'Se necesita el refresh token',
       });
     }
 
@@ -245,7 +246,7 @@ export const logout = async (req, res) => {
     if (typeof refreshToken !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Refresh token must be a string',
+        message: 'Refresh token debe ser texto',
       });
     }
 
@@ -253,30 +254,30 @@ export const logout = async (req, res) => {
     if (accessToken && typeof accessToken !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Access token must be a string',
+        message: 'El access token debe ser texto',
       });
     }
 
     await authService.logoutUser(refreshToken, accessToken);
 
     res.status(200).json({
-      message: 'Logout successful',
+      message: 'Sesión cerrada exitosamente',
     });
   } catch (error) {
     logger.error(`Logout error: ${error.message}`);
 
     // Error de token no encontrado
-    if (error.message === 'Refresh token not found') {
+    if (error.message === 'Refresh token no encontrado') {
       return res.status(404).json({
         error: 'TOKEN_NOT_FOUND',
-        message: 'Refresh token not found',
+        message: 'Refresh token no encontrado',
       });
     }
 
     // Error genérico del servidor
     res.status(500).json({
       error: 'LOGOUT_FAILED',
-      message: 'Logout failed',
+      message: 'Error al cerrar sesión',
     });
   }
 };
@@ -293,21 +294,21 @@ export const revokeAll = async (req, res) => {
     if (!userId) {
       return res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
-        message: 'Authentication required',
+        message: 'Autenticación requerida',
       });
     }
 
     const revokedCount = await authService.revokeAllUserTokens(userId);
 
     res.status(200).json({
-      message: 'All tokens revoked successfully',
+      message: 'Todos los tokens han sido revocados exitosamente',
       revokedCount,
     });
   } catch (error) {
     logger.error(`Revoke all tokens error: ${error.message}`);
     res.status(500).json({
       error: 'REVOKE_FAILED',
-      message: 'Failed to revoke tokens',
+      message: 'Error al revocar los tokens',
     });
   }
 };
@@ -319,21 +320,21 @@ export const verifyEmail = async (req, res) => {
     if (!token) {
       return res.status(400).json({
         error: 'MISSING_TOKEN',
-        message: 'Verification token is required',
+        message: 'Se necesita el token de verificación',
       });
     }
 
     if (typeof token !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Token must be a string',
+        message: 'El token debe ser texto',
       });
     }
 
     const user = await authService.verifyEmail(token);
 
     res.status(200).json({
-      message: 'Email verified successfully',
+      message: 'Email verificado exitosamente',
       emailVerified: true,
       username: user.username,
     });
@@ -341,8 +342,8 @@ export const verifyEmail = async (req, res) => {
     logger.error(`Email verification error: ${error.message}`);
 
     if (
-      error.message.includes('Invalid') ||
-      error.message.includes('expired')
+      error.message.includes('inválido') ||
+      error.message.includes('expirado')
     ) {
       return res.status(400).json({
         error: 'INVALID_TOKEN',
@@ -352,7 +353,7 @@ export const verifyEmail = async (req, res) => {
 
     res.status(500).json({
       error: 'VERIFICATION_FAILED',
-      message: 'Email verification failed',
+      message: 'Error en la verificación del email',
     });
   }
 };
@@ -363,14 +364,14 @@ export const resendVerificationEmail = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         error: 'MISSING_EMAIL',
-        message: 'Email is required',
+        message: 'Se necesita el email',
       });
     }
 
     if (typeof email !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Email must be a string',
+        message: 'El email debe ser texto',
       });
     }
 
@@ -378,35 +379,35 @@ export const resendVerificationEmail = async (req, res) => {
     if (!emailRegex.test(email.trim())) {
       return res.status(400).json({
         error: 'INVALID_EMAIL',
-        message: 'Email format is invalid',
+        message: 'Formato de email inválido',
       });
     }
 
     await authService.resendVerificationEmail(email);
 
     res.status(200).json({
-      message: 'Verification email sent successfully',
+      message: 'Email de verificación enviado exitosamente',
     });
   } catch (error) {
     logger.error(`Resend verification email error: ${error.message}`);
 
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
 
-    if (error.message === 'Email already verified') {
+    if (error.message === 'Email ya verificado') {
       return res.status(400).json({
         error: 'ALREADY_VERIFIED',
-        message: 'Email is already verified',
+        message: 'El email ya está verificado',
       });
     }
 
     res.status(500).json({
       error: 'RESEND_FAILED',
-      message: 'Failed to resend verification email',
+      message: 'Error al reenviar el email de verificación',
     });
   }
 };
@@ -417,14 +418,14 @@ export const forgotPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         error: 'MISSING_EMAIL',
-        message: 'Email is required',
+        message: 'Se necesita el email',
       });
     }
 
     if (typeof email !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Email must be a string',
+        message: 'El email debe ser texto',
       });
     }
 
@@ -432,20 +433,22 @@ export const forgotPassword = async (req, res) => {
     if (!emailRegex.test(email.trim())) {
       return res.status(400).json({
         error: 'INVALID_EMAIL',
-        message: 'Email format is invalid',
+        message: 'Formato de email inválido',
       });
     }
 
     await authService.requestPasswordReset(email);
 
     res.status(200).json({
-      message: 'If the email exists, a reset link will be sent',
+      message:
+        'Si el email existe, se enviará un enlace para reestablecer la contraseña',
     });
   } catch (error) {
     logger.error(`Forgot password error: ${error.message}`);
 
     res.status(200).json({
-      message: 'If the email exists, a reset link will be sent',
+      message:
+        'Si el email existe, se enviará un enlace para reestablecer la contraseña',
     });
   }
 };
@@ -457,10 +460,12 @@ export const resetPassword = async (req, res) => {
     if (!token || !password) {
       return res.status(400).json({
         error: 'MISSING_FIELDS',
-        message: 'Token and password are required',
+        message: 'Se necesita el token y la contraseña',
         details: {
-          token: !token ? 'Reset token is required' : undefined,
-          password: !password ? 'New password is required' : undefined,
+          token: !token
+            ? 'Se necesita el token de restablecimiento'
+            : undefined,
+          password: !password ? 'Se necesita la nueva contraseña' : undefined,
         },
       });
     }
@@ -468,28 +473,28 @@ export const resetPassword = async (req, res) => {
     if (typeof token !== 'string' || typeof password !== 'string') {
       return res.status(400).json({
         error: 'INVALID_DATA_TYPE',
-        message: 'Token and password must be strings',
+        message: 'El token y contraseña deben ser texto',
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
         error: 'INVALID_PASSWORD',
-        message: 'Password must be at least 6 characters long',
+        message: 'La contraseña debe tener al menos 6 caracteres',
       });
     }
 
     await authService.resetPassword(token, password);
 
     res.status(200).json({
-      message: 'Password reset successfully',
+      message: 'Contraseña restablecida exitosamente',
     });
   } catch (error) {
     logger.error(`Reset password error: ${error.message}`);
 
     if (
-      error.message.includes('Invalid') ||
-      error.message.includes('expired')
+      error.message.includes('inválido') ||
+      error.message.includes('expirado')
     ) {
       return res.status(400).json({
         error: 'INVALID_TOKEN',
@@ -499,7 +504,7 @@ export const resetPassword = async (req, res) => {
 
     res.status(500).json({
       error: 'RESET_FAILED',
-      message: 'Password reset failed',
+      message: 'Error al restablecer la contraseña',
     });
   }
 };
@@ -512,55 +517,57 @@ export const changePassword = async (req, res) => {
     if (!userId) {
       return res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
-        message: 'Authentication required',
+        message: 'Se necesita autenticación',
       });
     }
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         error: 'MISSING_FIELDS',
-        message: 'Current password and new password are required',
+        message: 'Se necesita la contraseña actual y la nueva',
         details: {
           currentPassword: !currentPassword
-            ? 'Current password is required'
+            ? 'Introduzca la contraseña actual'
             : undefined,
-          newPassword: !newPassword ? 'New password is required' : undefined,
+          newPassword: !newPassword
+            ? 'Introduzca la nueva contraseña'
+            : undefined,
         },
       });
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 6) {
       return res.status(400).json({
         error: 'INVALID_PASSWORD',
-        message: 'New password must be at least 8 characters long',
+        message: 'La nueva contraseña debe tener al menos 6 caracteres',
       });
     }
 
     await authService.changePassword(userId, currentPassword, newPassword);
 
     res.status(200).json({
-      message: 'Password changed successfully',
+      message: 'Contraseña cambiada exitosamente',
     });
   } catch (error) {
     logger.error(`Change password error: ${error.message}`);
 
-    if (error.message === 'Current password is incorrect') {
+    if (error.message === 'Contraseña actual incorrecta') {
       return res.status(401).json({
         error: 'INCORRECT_PASSWORD',
-        message: 'Current password is incorrect',
+        message: 'La contraseña actual es incorrecta',
       });
     }
 
-    if (error.message === 'User not found') {
+    if (error.message === 'Usuario no encontrado') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
 
     res.status(500).json({
       error: 'CHANGE_PASSWORD_FAILED',
-      message: 'Failed to change password',
+      message: 'Error al cambiar la contraseña',
     });
   }
 };
@@ -578,7 +585,7 @@ export const deleteUserInternal = async (req, res) => {
     if (!userId) {
       return res.status(400).json({
         error: 'MISSING_USER_ID',
-        message: 'User ID is required',
+        message: 'Se necesita el ID del usuario',
       });
     }
 
@@ -587,7 +594,7 @@ export const deleteUserInternal = async (req, res) => {
     if (!objectIdRegex.test(userId)) {
       return res.status(400).json({
         error: 'INVALID_USER_ID',
-        message: 'Invalid user ID format',
+        message: 'Formato de ID de usuario inválido',
       });
     }
 
@@ -603,13 +610,13 @@ export const deleteUserInternal = async (req, res) => {
     if (error.code === 'USER_NOT_FOUND') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
 
     res.status(500).json({
       error: 'DELETE_FAILED',
-      message: 'Failed to delete user account',
+      message: 'Error al eliminar la cuenta de usuario',
     });
   }
 };

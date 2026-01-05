@@ -107,7 +107,7 @@ describe('AuthService', () => {
       });
 
       await expect(authService.registerUser(validUserData)).rejects.toThrow(
-        'Username already exists'
+        'El nombre de usuario ya existe'
       );
     });
 
@@ -118,7 +118,7 @@ describe('AuthService', () => {
       });
 
       await expect(authService.registerUser(validUserData)).rejects.toThrow(
-        'Email already exists'
+        'El email ya existe'
       );
     });
 
@@ -138,7 +138,7 @@ describe('AuthService', () => {
       User.findByIdAndDelete.mockResolvedValue(null);
 
       await expect(authService.registerUser(validUserData)).rejects.toThrow(
-        'Failed to create user profile'
+        'Error al crear perfil'
       );
       expect(User.findByIdAndDelete).toHaveBeenCalledWith(mockUserId);
     });
@@ -229,7 +229,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.loginUser('nonexistent', 'password123')
-      ).rejects.toThrow('Invalid credentials');
+      ).rejects.toThrow('Credenciales inválidas');
     });
 
     it('should throw error if password is incorrect', async () => {
@@ -238,7 +238,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.loginUser('testuser', 'wrongpassword')
-      ).rejects.toThrow('Invalid credentials');
+      ).rejects.toThrow('Credenciales inválidas');
     });
   });
 
@@ -282,7 +282,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.refreshAccessToken('invalid-token')
-      ).rejects.toThrow('Invalid or expired refresh token');
+      ).rejects.toThrow('Refresh token inválido o expirado');
     });
 
     it('should throw error if user not found', async () => {
@@ -291,7 +291,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.refreshAccessToken('valid-token')
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('Usuario no encontrado');
     });
   });
 
@@ -332,7 +332,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.logoutUser('invalid-refresh-token', null)
-      ).rejects.toThrow('Refresh token not found');
+      ).rejects.toThrow('Refresh token no encontrado');
     });
 
     it('should continue logout even if access token revocation fails', async () => {
@@ -409,7 +409,7 @@ describe('AuthService', () => {
       expect(User.deleteOne).toHaveBeenCalledWith({
         _id: mockUserId.toString(),
       });
-      expect(result.message).toBe('Account deleted successfully');
+      expect(result.message).toBe('Cuenta eliminada exitosamente');
       expect(result.deletedUserId).toBe(mockUserId.toString());
     });
 
@@ -419,7 +419,7 @@ describe('AuthService', () => {
       await expect(
         authService.deleteUserAccount('nonexistent-id')
       ).rejects.toMatchObject({
-        message: 'User not found',
+        message: 'Usuario no encontrado',
         code: 'USER_NOT_FOUND',
       });
 
@@ -435,7 +435,7 @@ describe('AuthService', () => {
 
       const result = await authService.deleteUserAccount(mockUserId.toString());
 
-      expect(result.message).toBe('Account deleted successfully');
+      expect(result.message).toBe('Cuenta eliminada exitosamente');
       expect(User.deleteOne).toHaveBeenCalled();
     });
 
@@ -446,7 +446,7 @@ describe('AuthService', () => {
 
       const result = await authService.deleteUserAccount(mockUserId.toString());
 
-      expect(result.message).toBe('Account deleted successfully');
+      expect(result.message).toBe('Cuenta eliminada exitosamente');
       expect(User.deleteOne).toHaveBeenCalled();
     });
 
@@ -458,7 +458,7 @@ describe('AuthService', () => {
       const result = await authService.deleteUserAccount(mockUserId.toString());
 
       expect(result.deletedUserId).toBe(mockUserId.toString());
-      expect(result.message).toBe('Account deleted successfully');
+      expect(result.message).toBe('Cuenta eliminada exitosamente');
     });
   });
 
@@ -484,7 +484,7 @@ describe('AuthService', () => {
       expect(mockUser.comparePassword).toHaveBeenCalledWith('oldPassword');
       expect(mockUser.password).toBe('newPassword123');
       expect(mockUser.save).toHaveBeenCalled();
-      expect(result.message).toBe('Password changed successfully');
+      expect(result.message).toBe('Contraseña cambiada exitosamente');
     });
 
     it('should throw if user not found', async () => {
@@ -492,7 +492,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.changePassword('nonexistent', 'old', 'new12345')
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('Usuario no encontrado');
     });
 
     it('should throw if current password is incorrect', async () => {
@@ -504,7 +504,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.changePassword('user-id', 'wrongPassword', 'newPassword123')
-      ).rejects.toThrow('Current password is incorrect');
+      ).rejects.toThrow('Contraseña actual incorrecta');
     });
 
     it('should throw if new password is too short', async () => {
@@ -516,7 +516,7 @@ describe('AuthService', () => {
 
       await expect(
         authService.changePassword('user-id', 'oldPassword', 'short')
-      ).rejects.toThrow('New password must be at least 8 characters');
+      ).rejects.toThrow('La nueva contraseña debe tener al menos 6 caracteres');
     });
   });
 });

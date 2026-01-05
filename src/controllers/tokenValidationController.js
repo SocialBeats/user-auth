@@ -16,7 +16,7 @@ export const validateToken = async (req, res) => {
       return res.status(400).json({
         valid: false,
         error: 'MISSING_TOKEN',
-        message: 'Token is required',
+        message: 'Token no proporcionado',
       });
     }
 
@@ -32,7 +32,7 @@ export const validateToken = async (req, res) => {
       return res.status(200).json({
         valid: false,
         error: 'INVALID_TOKEN',
-        message: 'Token is invalid or has been revoked',
+        message: 'El token es inválido o ha sido revocado',
       });
     }
 
@@ -55,7 +55,7 @@ export const validateToken = async (req, res) => {
     res.status(500).json({
       valid: false,
       error: 'VALIDATION_FAILED',
-      message: 'Token validation failed',
+      message: 'Error en la validación del token',
     });
   }
 };

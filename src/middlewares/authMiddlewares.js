@@ -37,7 +37,9 @@ const verifyToken = async (req, res, next) => {
   if (!req.path.startsWith('/api/v')) {
     return res
       .status(400)
-      .json({ message: 'You must specify the API version, e.g. /api/v1/...' });
+      .json({
+        message: 'Debes especificar la versión de la API, ej. /api/v1/...',
+      });
   }
 
   // Prioridad 1: Headers del Gateway (cuando viene a través del gateway)
@@ -72,7 +74,7 @@ const verifyToken = async (req, res, next) => {
     logger.warn(`Unauthenticated request to ${req.path}`);
     return res.status(401).json({
       error: 'MISSING_TOKEN',
-      message: 'Missing token',
+      message: 'Token no proporcionado',
     });
   }
 
@@ -83,7 +85,7 @@ const verifyToken = async (req, res, next) => {
     logger.error(`Token validation failed for path: ${req.path}`);
     return res.status(403).json({
       error: 'TOKEN_EXPIRED_OR_INVALID',
-      message: 'Invalid or expired token',
+      message: 'Token inválido o expirado',
     });
   }
 

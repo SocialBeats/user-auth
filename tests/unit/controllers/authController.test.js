@@ -65,7 +65,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'User registered successfully',
+        message: 'Usuario registrado exitosamente',
       });
     });
 
@@ -294,7 +294,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Login successful',
+        message: 'Inicio de sesión exitoso',
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
       });
@@ -368,7 +368,9 @@ describe('AuthController', () => {
       });
       const res = mockResponse();
 
-      authService.loginUser.mockRejectedValue(new Error('Invalid credentials'));
+      authService.loginUser.mockRejectedValue(
+        new Error('Credenciales inválidas')
+      );
 
       await authController.login(req, res);
 
@@ -436,7 +438,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Token refreshed successfully',
+        message: 'Token actualizado exitosamente',
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
       });
@@ -495,7 +497,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.refreshAccessToken.mockRejectedValue(
-        new Error('Invalid or expired refresh token')
+        new Error('Token de actualización inválido o expirado')
       );
 
       await authController.refresh(req, res);
@@ -538,7 +540,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Logout successful',
+        message: 'Sesión cerrada exitosamente',
       });
     });
 
@@ -598,7 +600,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.logoutUser.mockRejectedValue(
-        new Error('Refresh token not found')
+        new Error('Refresh token no encontrado')
       );
 
       await authController.logout(req, res);
@@ -636,7 +638,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'All tokens revoked successfully',
+        message: 'Todos los tokens han sido revocados exitosamente',
         revokedCount: 5,
       });
     });
@@ -722,7 +724,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.verifyEmail.mockRejectedValue(
-        new Error('Invalid or expired verification token')
+        new Error('Token de verificación inválido o expirado')
       );
 
       await authController.verifyEmail(req, res);
@@ -737,7 +739,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.resendVerificationEmail.mockResolvedValue({
-        message: 'Verification email sent',
+        message: 'Email de verificación enviado',
       });
 
       await authController.resendVerificationEmail(req, res);
@@ -785,7 +787,8 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'If the email exists, a reset link will be sent',
+        message:
+          'Si el email existe, se enviará un enlace para reestablecer la contraseña',
       });
     });
 
@@ -833,7 +836,7 @@ describe('AuthController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Password reset successfully',
+        message: 'Contraseña restablecida exitosamente',
       });
     });
 
@@ -870,7 +873,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.resetPassword.mockRejectedValue(
-        new Error('Invalid or expired reset token')
+        new Error('Token de restablecimiento inválido o expirado')
       );
 
       await authController.resetPassword(req, res);
@@ -888,7 +891,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.changePassword.mockResolvedValue({
-        message: 'Password changed successfully',
+        message: 'Contraseña cambiada exitosamente',
       });
 
       await authController.changePassword(req, res);
@@ -900,7 +903,7 @@ describe('AuthController', () => {
       );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Password changed successfully',
+        message: 'Contraseña cambiada exitosamente',
       });
     });
 
@@ -948,7 +951,7 @@ describe('AuthController', () => {
 
     it('should return 400 if newPassword is too short', async () => {
       const req = mockRequest(
-        { currentPassword: 'oldPassword', newPassword: '1234567' },
+        { currentPassword: 'oldPassword', newPassword: '12345' },
         { id: 'user-123' }
       );
       const res = mockResponse();
@@ -969,7 +972,7 @@ describe('AuthController', () => {
       const res = mockResponse();
 
       authService.changePassword.mockRejectedValue(
-        new Error('Current password is incorrect')
+        new Error('Contraseña actual incorrecta')
       );
 
       await authController.changePassword(req, res);
@@ -987,7 +990,9 @@ describe('AuthController', () => {
       );
       const res = mockResponse();
 
-      authService.changePassword.mockRejectedValue(new Error('User not found'));
+      authService.changePassword.mockRejectedValue(
+        new Error('Usuario no encontrado')
+      );
 
       await authController.changePassword(req, res);
 

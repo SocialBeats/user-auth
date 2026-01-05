@@ -78,12 +78,12 @@ describe('TwoFactorService', () => {
     it('should throw if user not found or 2FA already enabled', async () => {
       User.findById.mockResolvedValue(null);
       await expect(twoFactorService.generateSetup('id')).rejects.toThrow(
-        'User not found'
+        'Usuario no encontrado'
       );
 
       User.findById.mockResolvedValue({ isTwoFactorEnabled: true });
       await expect(twoFactorService.generateSetup('id')).rejects.toThrow(
-        '2FA is already enabled'
+        '2FA ya está activado'
       );
     });
   });
@@ -116,7 +116,7 @@ describe('TwoFactorService', () => {
       authenticator.verify.mockReturnValue(false);
 
       await expect(twoFactorService.enable2FA('id', '000000')).rejects.toThrow(
-        'Invalid verification code'
+        'Código de verificación inválido'
       );
 
       User.findById.mockResolvedValue({
@@ -124,7 +124,7 @@ describe('TwoFactorService', () => {
         twoFactorSecret: null,
       });
       await expect(twoFactorService.enable2FA('id', '123456')).rejects.toThrow(
-        '2FA setup not initiated'
+        '2FA no iniciado'
       );
     });
   });
@@ -148,7 +148,7 @@ describe('TwoFactorService', () => {
     it('should throw if 2FA not enabled or invalid code', async () => {
       User.findById.mockResolvedValue({ isTwoFactorEnabled: false });
       await expect(twoFactorService.disable2FA('id', '123456')).rejects.toThrow(
-        '2FA is not enabled'
+        '2FA no está activado'
       );
 
       User.findById.mockResolvedValue({
@@ -159,7 +159,7 @@ describe('TwoFactorService', () => {
       authenticator.verify.mockReturnValue(false);
       await expect(
         twoFactorService.disable2FA('id', 'INVALID')
-      ).rejects.toThrow('Invalid verification code');
+      ).rejects.toThrow('Código de verificación inválido');
     });
   });
 
@@ -237,7 +237,7 @@ describe('TwoFactorService', () => {
       redisMock.get.mockResolvedValue(null);
       await expect(
         twoFactorService.verifyAndGenerateTokens('invalid', '123456')
-      ).rejects.toThrow('Invalid or expired temp token');
+      ).rejects.toThrow('Token temporal inválido o expirado');
     });
   });
 });

@@ -46,7 +46,7 @@ export const getPresignedUrl = async (req, res) => {
 
     if (!fileName || !fileType) {
       return res.status(400).json({
-        error: 'Missing parameters: fileName and fileType are required',
+        error: 'Faltan parámetros: fileName y fileType son requeridos',
       });
     }
 
