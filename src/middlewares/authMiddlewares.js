@@ -35,11 +35,9 @@ const verifyToken = async (req, res, next) => {
   }
 
   if (!req.path.startsWith('/api/v')) {
-    return res
-      .status(400)
-      .json({
-        message: 'Debes especificar la versión de la API, ej. /api/v1/...',
-      });
+    return res.status(400).json({
+      message: 'Debes especificar la versión de la API, ej. /api/v1/...',
+    });
   }
 
   // Prioridad 1: Headers del Gateway (cuando viene a través del gateway)
