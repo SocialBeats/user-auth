@@ -64,7 +64,7 @@ describe('ProfileService', () => {
           email: 'test@test.com',
         })
       ).rejects.toThrow(
-        'userId, username, and email are required to create a profile'
+        'Se necesita userId, username y email para crear un perfil'
       );
     });
 
@@ -75,7 +75,7 @@ describe('ProfileService', () => {
           email: 'test@test.com',
         })
       ).rejects.toThrow(
-        'userId, username, and email are required to create a profile'
+        'Se necesita userId, username y email para crear un perfil'
       );
     });
 
@@ -86,7 +86,7 @@ describe('ProfileService', () => {
           username: 'testuser',
         })
       ).rejects.toThrow(
-        'userId, username, and email are required to create a profile'
+        'Se necesita userId, username y email para crear un perfil'
       );
     });
   });
@@ -247,7 +247,7 @@ describe('ProfileService', () => {
 
       await expect(
         profileService.updateProfile(userId, { about_me: 'New bio' })
-      ).rejects.toThrow(`Profile not found for user ${userId}`);
+      ).rejects.toThrow(`Perfil no encontrado para el usuario ${userId}`);
     });
 
     it('should flatten nested contact fields using dot notation', async () => {
@@ -335,7 +335,7 @@ describe('ProfileService', () => {
       mockFindOneAndDelete.mockResolvedValue(null);
 
       await expect(profileService.deleteProfile('nonexistent')).rejects.toThrow(
-        'Profile not found for user nonexistent'
+        'Perfil no encontrado para el usuario nonexistent'
       );
     });
 

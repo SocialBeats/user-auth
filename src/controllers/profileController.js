@@ -87,7 +87,7 @@ export const getMyProfile = async (req, res, next) => {
     if (!profile) {
       return res.status(404).json({
         error: 'PROFILE_NOT_FOUND',
-        message: 'Profile not found for this user',
+        message: 'Perfil no encontrado para este usuario',
       });
     }
 
@@ -115,7 +115,7 @@ export const getProfileByUsername = async (req, res, next) => {
     if (!profile) {
       return res.status(404).json({
         error: 'PROFILE_NOT_FOUND',
-        message: `Profile not found for user ${username}`,
+        message: `Perfil no encontrado para el usuario ${username}`,
       });
     }
 
@@ -139,7 +139,7 @@ export const getProfileByUserId = async (req, res, next) => {
     if (!profile) {
       return res.status(404).json({
         error: 'PROFILE_NOT_FOUND',
-        message: `Profile not found for userId ${userId}`,
+        message: `Perfil no encontrado para el userId ${userId}`,
       });
     }
 
@@ -173,7 +173,7 @@ export const getProfileByIdentifier = async (req, res, next) => {
     if (!profile) {
       return res.status(404).json({
         error: 'PROFILE_NOT_FOUND',
-        message: `Profile not found for ${isObjectId ? 'userId' : 'username'}: ${identifier}`,
+        message: `Perfil no encontrado para ${isObjectId ? 'userId' : 'nombre de usuario'}: ${identifier}`,
       });
     }
 
@@ -202,7 +202,8 @@ export const updateMyProfile = async (req, res, next) => {
     if (hasRestrictedFields) {
       return res.status(400).json({
         error: 'INVALID_UPDATE',
-        message: 'Cannot update userId, username, or email from profile',
+        message:
+          'No se puede actualizar userId, username o email desde el perfil',
       });
     }
 
@@ -286,7 +287,7 @@ export const deleteMyProfile = async (req, res, next) => {
     if (!userId) {
       return res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
-        message: 'Authentication required to delete account',
+        message: 'Autenticación requerida para eliminar la cuenta',
       });
     }
 
@@ -303,7 +304,7 @@ export const deleteMyProfile = async (req, res, next) => {
     if (error.code === 'USER_NOT_FOUND') {
       return res.status(404).json({
         error: 'USER_NOT_FOUND',
-        message: 'User not found',
+        message: 'Usuario no encontrado',
       });
     }
 
@@ -322,7 +323,7 @@ export const searchProfiles = async (req, res, next) => {
     if (!q) {
       return res.status(400).json({
         error: 'MISSING_SEARCH_TERM',
-        message: 'Search term (q) is required',
+        message: 'El término de búsqueda (q) es requerido',
       });
     }
 
@@ -370,7 +371,7 @@ export const getCompletionStatus = async (req, res, next) => {
   } catch (error) {
     logger.error(`Error getting completion status: ${error.message}`);
 
-    if (error.message.includes('not found')) {
+    if (error.message.includes('no encontrado')) {
       return res.status(404).json({
         error: 'PROFILE_NOT_FOUND',
         message: error.message,

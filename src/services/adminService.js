@@ -26,7 +26,7 @@ export const getUserById = async (userId) => {
   try {
     const user = await User.findById(userId, '-password');
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('Usuario no encontrado');
     }
     return user;
   } catch (error) {
@@ -44,7 +44,7 @@ export const getUserByUsername = async (username) => {
   try {
     const user = await User.findOne({ username }, '-password');
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('Usuario no encontrado');
     }
     return user;
   } catch (error) {
@@ -63,7 +63,7 @@ export const updateUserByUsername = async (username, updateData) => {
   try {
     const user = await User.findOne({ username });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('Usuario no encontrado');
     }
 
     // Whitelist of fields allowed to be updated
@@ -104,14 +104,14 @@ export const deleteUser = async (userId) => {
     // First, find the user to check their role
     const user = await User.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('Usuario no encontrado');
     }
     // Check if the user is an admin
     if (user.role === 'admin') {
       // Count number of admins
       const adminCount = await User.countDocuments({ role: 'admin' });
       if (adminCount <= 1) {
-        throw new Error('Cannot delete the last remaining admin user');
+        throw new Error('No se puede eliminar el último administrador');
       }
     }
 

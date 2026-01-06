@@ -13,7 +13,7 @@ export async function createProfile(userData) {
     // Validar que los datos requeridos estén presentes
     if (!userId || !username || !email) {
       throw new Error(
-        'userId, username, and email are required to create a profile'
+        'Se necesita userId, username y email para crear un perfil'
       );
     }
 
@@ -147,7 +147,7 @@ export async function updateProfile(userId, updateData) {
     );
 
     if (!profile) {
-      throw new Error(`Profile not found for user ${userId}`);
+      throw new Error(`Perfil no encontrado para el usuario ${userId}`);
     }
 
     logger.info(`Profile updated for user ${userId}`);
@@ -169,7 +169,7 @@ export async function deleteProfile(userId) {
     const profile = await Profile.findOneAndDelete({ userId });
 
     if (!profile) {
-      throw new Error(`Profile not found for user ${userId}`);
+      throw new Error(`Perfil no encontrado para el usuario ${userId}`);
     }
 
     logger.info(`Profile deleted for user ${userId}`);
@@ -252,7 +252,7 @@ export async function getProfileCompletionStatus(userId) {
     const profile = await Profile.findOne({ userId });
 
     if (!profile) {
-      throw new Error(`Profile not found for user ${userId}`);
+      throw new Error(`Perfil no encontrado para el usuario ${userId}`);
     }
 
     const User = (await import('../models/User.js')).default;

@@ -94,7 +94,7 @@ describe('AdminService', () => {
       User.findById.mockResolvedValue(null);
 
       await expect(adminService.getUserById(mockUserId)).rejects.toThrow(
-        'User not found'
+        'Usuario no encontrado'
       );
     });
 
@@ -131,7 +131,7 @@ describe('AdminService', () => {
 
       await expect(
         adminService.getUserByUsername('nonexistent')
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('Usuario no encontrado');
     });
   });
 
@@ -182,7 +182,7 @@ describe('AdminService', () => {
         adminService.updateUserByUsername('nonexistent', {
           email: 'new@test.com',
         })
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('Usuario no encontrado');
     });
 
     it('should propagate save errors', async () => {
@@ -226,7 +226,7 @@ describe('AdminService', () => {
       User.findById.mockResolvedValue(null);
 
       await expect(adminService.deleteUser(mockUserId)).rejects.toThrow(
-        'User not found'
+        'Usuario no encontrado'
       );
     });
 
@@ -241,7 +241,7 @@ describe('AdminService', () => {
       User.countDocuments.mockResolvedValue(1);
 
       await expect(adminService.deleteUser(mockUserId)).rejects.toThrow(
-        'Cannot delete the last remaining admin user'
+        'No se puede eliminar el último administrador'
       );
     });
 
