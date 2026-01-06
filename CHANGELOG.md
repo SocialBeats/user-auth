@@ -1,3 +1,26 @@
+# Release v1.0.5
+
+## Features
+No new features.
+## Tests
+No test changes.
+## Documentation
+No documentation changes.
+## Fixes
+- fix: space connection mocked
+- fix: lint fix
+- fix: errors lang changed to spanish
+
+## Continuous integration (CI)
+No CI changes.
+## Other changes
+- Merge pull request #65 from SocialBeats/develop
+- Merge pull request #64 from SocialBeats/fix/errors-lang
+
+## Full commit history
+
+For full commit history, see [here](https://github.com/SocialBeats/user-auth/compare/v1.0.4...v1.0.5).
+
 # Release v1.0.4
 
 ## Features
