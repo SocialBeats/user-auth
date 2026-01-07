@@ -44,6 +44,10 @@ vi.mock('../../../src/services/emailService.js', () => ({
   sendPasswordChangedEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('../../../src/services/twoFactorService.js', () => ({
+  generateTempToken: vi.fn().mockResolvedValue('mock-temp-token-2fa'),
+}));
+
 // Import after mocks
 import * as authService from '../../../src/services/authService.js';
 import User from '../../../src/models/User.js';
