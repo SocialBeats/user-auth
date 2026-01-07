@@ -11,9 +11,6 @@ const admin = kafka.admin();
 
 let isConnected = false;
 
-/**
- * Connects the Kafka producer with retry logic
- */
 export async function connectKafkaProducer() {
   const MAX_RETRIES = Number(process.env.KAFKA_CONNECTION_MAX_RETRIES || 5);
   const RETRY_DELAY = Number(process.env.KAFKA_CONNECTION_RETRY_DELAY || 5000);
@@ -46,9 +43,6 @@ export async function connectKafkaProducer() {
   }
 }
 
-/**
- * Disconnects the Kafka producer
- */
 export async function disconnectKafkaProducer() {
   try {
     await producer.disconnect();
@@ -59,11 +53,6 @@ export async function disconnectKafkaProducer() {
   }
 }
 
-/**
- * Publishes an event to the users-events topic
- * @param {string} eventType - Type of event (USER_CREATED, USER_UPDATED, USER_DELETED)
- * @param {Object} payload - Event payload data
- */
 export async function publishUserEvent(eventType, payload) {
   if (!isKafkaEnabled()) {
     logger.info(`Kafka disabled, skipping event: ${eventType}`);
@@ -82,7 +71,6 @@ export async function publishUserEvent(eventType, payload) {
       timestamp: new Date().toISOString(),
     };
 
-    // Derive a stable message key to maintain predictable partitioning
     let messageKey;
     if (payload && (payload._id != null || payload.userId != null)) {
       const identifier = payload._id ?? payload.userId;
@@ -108,14 +96,9 @@ export async function publishUserEvent(eventType, payload) {
     logger.info(`Event published: ${eventType} for user ${userIdentifier}`);
   } catch (err) {
     logger.error(`Failed to publish event ${eventType}:`, err);
-    // Don't throw - publishing failure shouldn't break the main operation
   }
 }
 
-/**
- * Checks if Kafka is currently reachable
- * @returns {Promise<boolean>}
- */
 export async function isKafkaConnected() {
   try {
     await admin.connect();
@@ -127,10 +110,6 @@ export async function isKafkaConnected() {
   }
 }
 
-/**
- * Checks if Kafka is enabled via environment variable
- * @returns {boolean}
- */
 export function isKafkaEnabled() {
   return process.env.ENABLE_KAFKA?.toLowerCase() === 'true';
 }

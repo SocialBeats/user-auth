@@ -20,6 +20,7 @@ export default defineConfig({
         'src/routes/*Routes.js', // Routes are tested via integration tests
         'src/utils/initAdmin.js', // Initialization script
         'src/utils/versionUtils.js', // Version utilities - simple static data
+        'src/utils/spaceConnection.js', // Space connection - tested via integration
         'src/db.js', // Database connection - tested via integration
         'src/models/**', // Models - tested via integration (Mongoose schemas)
         'node_modules/**',

@@ -97,7 +97,6 @@ const recordSuccess = () => {
       );
     }
   } else if (circuitBreaker.state === CircuitState.CLOSED) {
-    // Reset failures on success
     circuitBreaker.failures = 0;
   }
 };

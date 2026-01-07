@@ -1,4 +1,5 @@
 import express from 'express';
+
 import * as authController from '../controllers/authController.js';
 import * as tokenValidationController from '../controllers/tokenValidationController.js';
 import {
@@ -210,6 +211,7 @@ router.post('/login', authController.login);
  * /api/v1/auth/refresh:
  *   post:
  *     summary: Refresca el access token usando un refresh token
+ *     description: Genera nuevos tokens de acceso usando el refresh token. Implementa rotación de refresh tokens.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -222,9 +224,11 @@ router.post('/login', authController.login);
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 description: Refresh token actual
+ *                 example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
  *     responses:
  *       200:
- *         description: Nuevo access token generado
+ *         description: Nuevos tokens generados exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -232,15 +236,53 @@ router.post('/login', authController.login);
  *               properties:
  *                 message:
  *                   type: string
- *                   description: Mensaje de éxito
+ *                   example: Token actualizado exitosamente
  *                 accessToken:
  *                   type: string
- *                   description: Nuevo access token
+ *                   description: Nuevo access token (JWT)
  *                 refreshToken:
  *                   type: string
  *                   description: Nuevo refresh token (rotado)
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   enum: [MISSING_REFRESH_TOKEN, INVALID_DATA_TYPE, EMPTY_REFRESH_TOKEN]
+ *                   example: MISSING_REFRESH_TOKEN
+ *                 message:
+ *                   type: string
+ *                   example: Se necesita el refresh token
  *       401:
  *         description: Refresh token inválido o expirado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: INVALID_REFRESH_TOKEN
+ *                 message:
+ *                   type: string
+ *                   example: El refresh token es inválido o ha expirado
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: REFRESH_FAILED
+ *                 message:
+ *                   type: string
+ *                   example: Error al actualizar el token
  */
 router.post('/refresh', authController.refresh);
 
@@ -325,15 +367,54 @@ router.post('/logout', authController.logout);
  * @swagger
  * /api/v1/auth/revoke-all:
  *   post:
- *     summary: Revoca todos los tokens de un usuario (requiere autenticación)
+ *     summary: Revoca todos los tokens de un usuario
+ *     description: |
+ *       Revoca todos los access y refresh tokens activos del usuario autenticado.
+ *       Útil para cerrar sesión en todos los dispositivos.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Todos los tokens revocados
+ *         description: Todos los tokens revocados exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Todos los tokens han sido revocados exitosamente
+ *                 revokedCount:
+ *                   type: integer
+ *                   description: Número de tokens revocados
+ *                   example: 5
  *       401:
  *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: AUTHENTICATION_REQUIRED
+ *                 message:
+ *                   type: string
+ *                   example: Autenticación requerida
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: REVOKE_FAILED
+ *                 message:
+ *                   type: string
+ *                   example: Error al revocar los tokens
  */
 router.post('/revoke-all', authController.revokeAll);
 
@@ -341,8 +422,12 @@ router.post('/revoke-all', authController.revokeAll);
  * @swagger
  * /api/v1/auth/validate-token:
  *   post:
- *     summary: Valida un access token contra Redis (usado por API Gateway)
- *     tags: [Auth]
+ *     summary: Valida un access token contra Redis
+ *     description: |
+ *       Endpoint interno usado por el API Gateway para validar tokens.
+ *       Verifica que el token no haya sido revocado en Redis.
+ *       Devuelve siempre 200 con `valid: true/false`.
+ *     tags: [Internal]
  *     requestBody:
  *       required: true
  *       content:
@@ -354,10 +439,11 @@ router.post('/revoke-all', authController.revokeAll);
  *             properties:
  *               token:
  *                 type: string
- *                 description: Access token a validar
+ *                 description: Access token (JWT) a validar
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *     responses:
  *       200:
- *         description: Resultado de la validación
+ *         description: Resultado de la validación (siempre devuelve 200)
  *         content:
  *           application/json:
  *             schema:
@@ -365,19 +451,64 @@ router.post('/revoke-all', authController.revokeAll);
  *               properties:
  *                 valid:
  *                   type: boolean
+ *                   description: true si el token es válido, false si no
  *                 user:
  *                   type: object
+ *                   description: Datos del usuario (solo si valid=true)
  *                   properties:
  *                     id:
  *                       type: string
+ *                       example: 507f1f77bcf86cd799439011
  *                     username:
  *                       type: string
+ *                       example: john_doe
  *                     email:
  *                       type: string
+ *                       example: john@example.com
  *                     roles:
  *                       type: array
  *                       items:
  *                         type: string
+ *                       example: ["beatmaker"]
+ *                 error:
+ *                   type: string
+ *                   description: Código de error (solo si valid=false)
+ *                   enum: [MISSING_TOKEN, INVALID_TOKEN]
+ *                 message:
+ *                   type: string
+ *                   description: Mensaje de error (solo si valid=false)
+ *       400:
+ *         description: Token no proporcionado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: MISSING_TOKEN
+ *                 message:
+ *                   type: string
+ *                   example: Token no proporcionado
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: VALIDATION_FAILED
+ *                 message:
+ *                   type: string
+ *                   example: Error en la validación del token
  */
 router.post('/validate-token', tokenValidationController.validateToken);
 

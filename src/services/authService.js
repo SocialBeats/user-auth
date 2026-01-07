@@ -14,7 +14,6 @@ import * as emailService from './emailService.js';
 export const registerUser = async (userData) => {
   const { username, email, password, roles } = userData;
 
-  // Validar si el usuario o email ya existen
   const existingUser = await User.findOne({
     $or: [{ username }, { email }],
   });
@@ -42,7 +41,6 @@ export const registerUser = async (userData) => {
     emailVerificationExpires: verificationExpires,
   });
 
-  // Crear perfil asociado al usuario
   try {
     await createProfile({
       userId: user._id,
@@ -50,7 +48,6 @@ export const registerUser = async (userData) => {
       email: user.email,
     });
   } catch (profileError) {
-    // Si falla la creación del perfil, eliminar el usuario para mantener consistencia
     logger.error(
       `Failed to create profile for user ${username}, rolling back user creation`
     );
@@ -113,7 +110,6 @@ export const registerUser = async (userData) => {
       verificationToken,
     });
   } catch (emailError) {
-    // No bloqueamos el registro si falla el envío de email
     logger.error(
       `Failed to send verification email to ${email}: ${emailError.message}`
     );
@@ -139,13 +135,11 @@ export const loginUser = async (identifier, password) => {
     throw new Error('Credenciales inválidas');
   }
 
-  // Verificar contraseña
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new Error('Credenciales inválidas');
   }
 
-  // Si el usuario tiene 2FA activado, devolver tempToken en lugar de tokens finales
   if (user.isTwoFactorEnabled) {
     const twoFactorService = await import('./twoFactorService.js');
     const tempToken = await twoFactorService.generateTempToken(user);
@@ -158,7 +152,6 @@ export const loginUser = async (identifier, password) => {
     };
   }
 
-  // Generar tokens usando Redis
   const accessToken = await tokenService.generateAndStoreAccessToken(user);
   const refreshToken = await tokenService.generateAndStoreRefreshToken(
     user._id
@@ -186,17 +179,14 @@ export const refreshAccessToken = async (refreshToken) => {
     throw new Error('Refresh token inválido o expirado');
   }
 
-  // Obtener usuario de la base de datos
   const user = await User.findById(tokenData.userId);
 
   if (!user) {
     throw new Error('Usuario no encontrado');
   }
 
-  // Generar nuevo access token
   const accessToken = await tokenService.generateAndStoreAccessToken(user);
 
-  // Rotar el refresh token (con periodo de gracia)
   const newRefreshToken = await tokenService.rotateRefreshToken(
     refreshToken,
     tokenData
@@ -220,7 +210,6 @@ export const refreshAccessToken = async (refreshToken) => {
  * @returns {boolean} - true si se revocó correctamente
  */
 export const logoutUser = async (refreshToken, accessToken) => {
-  // Intentar revocar access token primero (best effort - puede estar caducado)
   if (accessToken) {
     try {
       const accessSuccess = await tokenService.revokeToken(
@@ -233,14 +222,12 @@ export const logoutUser = async (refreshToken, accessToken) => {
         logger.warn('Access token not found or already expired/revoked');
       }
     } catch (error) {
-      // No es crítico si falla - puede estar caducado
       logger.warn(
         `Failed to revoke access token (non-critical): ${error.message}`
       );
     }
   }
 
-  // Revocar refresh token (este es el crítico)
   const refreshSuccess = await tokenService.revokeToken(
     refreshToken,
     'refresh'
@@ -280,7 +267,6 @@ export const verifyEmail = async (token) => {
     throw new Error('Token de verificación inválido o expirado');
   }
 
-  // Marcar email como verificado y limpiar tokens
   user.emailVerified = true;
   user.emailVerificationToken = null;
   user.emailVerificationExpires = null;
@@ -457,7 +443,6 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
  * @returns {Object} - Resultado de la eliminación
  */
 export const deleteUserAccount = async (userId) => {
-  // Import Profile here to avoid circular dependencies
   const Profile = (await import('../models/Profile.js')).default;
 
   const user = await User.findById(userId);

@@ -347,4 +347,90 @@ describe('ProfileService', () => {
       );
     });
   });
+
+  describe('getProfileCompletionStatus', () => {
+    it('should throw error if profile not found', async () => {
+      mockFindOne.mockResolvedValue(null);
+
+      await expect(
+        profileService.getProfileCompletionStatus('nonexistent')
+      ).rejects.toThrow('Perfil no encontrado para el usuario nonexistent');
+    });
+
+    it('should calculate completion status for incomplete profile', async () => {
+      const mockProfile = {
+        userId: 'user123',
+        full_name: '',
+        about_me: '',
+        avatar: '',
+        contact: {
+          city: '',
+          country: '',
+          phone: '',
+          website: '',
+        },
+        tags: [],
+        studies: [],
+        certifications: [],
+        identityVerified: false,
+      };
+
+      mockFindOne.mockResolvedValue(mockProfile);
+
+      // Mock User model
+      vi.doMock('../../../src/models/User.js', () => ({
+        default: {
+          findById: vi.fn().mockResolvedValue({ isTwoFactorEnabled: false }),
+        },
+      }));
+
+      const result = await profileService.getProfileCompletionStatus('user123');
+
+      expect(result).toHaveProperty('steps');
+      expect(result).toHaveProperty('completionPercentage');
+      expect(result).toHaveProperty('verificationLevel');
+      expect(result.completionPercentage).toBeLessThan(100);
+      expect(result.verificationLevel).toBe('none');
+    });
+
+    it('should return verified status for verified profile', async () => {
+      const mockProfile = {
+        userId: 'user123',
+        full_name: 'Test User',
+        about_me:
+          'This is a test bio that is longer than fifty characters to pass validation',
+        avatar: 'https://example.com/avatar.jpg',
+        contact: {
+          city: 'Madrid',
+          country: 'Spain',
+          phone: '123456789',
+          website: 'https://test.com',
+        },
+        tags: ['tag1', 'tag2', 'tag3'],
+        studies: [{ title: 'Study 1' }],
+        certifications: [{ name: 'Cert 1' }],
+        identityVerified: true,
+      };
+
+      mockFindOne.mockResolvedValue(mockProfile);
+
+      vi.doMock('../../../src/models/User.js', () => ({
+        default: {
+          findById: vi.fn().mockResolvedValue({ isTwoFactorEnabled: true }),
+        },
+      }));
+
+      const result = await profileService.getProfileCompletionStatus('user123');
+
+      expect(result.verificationLevel).toBe('verified');
+    });
+
+    it('should propagate database errors', async () => {
+      mockFindOne.mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        profileService.getProfileCompletionStatus('user123')
+      ).rejects.toThrow('Database error');
+    });
+  });
 });

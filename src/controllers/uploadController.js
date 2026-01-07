@@ -118,13 +118,11 @@ export const deleteCertification = async (req, res) => {
     const userId = req.user.id;
     const { certificationId } = req.params;
 
-    // Obtener el perfil del usuario
     const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ error: 'Perfil no encontrado' });
     }
 
-    // Buscar la certificación por ID
     const certification = profile.certifications.find(
       (cert) => cert._id.toString() === certificationId
     );
@@ -133,8 +131,6 @@ export const deleteCertification = async (req, res) => {
       return res.status(404).json({ error: 'Certificación no encontrada' });
     }
 
-    // Extraer la key de S3 desde la URL del CDN
-    // URL formato: https://user-s3-fis.fra1.digitaloceanspaces.com/certifications/1234567890-filename.pdf
     const certUrl = certification.url;
     let s3Key = null;
 
@@ -142,7 +138,6 @@ export const deleteCertification = async (req, res) => {
       s3Key = certUrl.replace(`${CDN_URL}/`, '');
     }
 
-    // Borrar archivo de S3 si tenemos la key
     if (s3Key) {
       try {
         const deleteCommand = new DeleteObjectCommand({
@@ -152,7 +147,6 @@ export const deleteCertification = async (req, res) => {
         await s3Client.send(deleteCommand);
         logger.info(`Archivo S3 eliminado: ${s3Key}`);
       } catch (s3Error) {
-        // Log pero no fallar - el archivo puede no existir
         logger.warn(
           `No se pudo eliminar archivo de S3: ${s3Key}`,
           s3Error.message
@@ -160,7 +154,6 @@ export const deleteCertification = async (req, res) => {
       }
     }
 
-    // Decrementar contador en Space para liberar cuota (usando API directa con axios)
     try {
       const SPACE_URL = process.env.SPACE_URL || 'http://localhost:5403';
       const SPACE_API_KEY = process.env.SPACE_API_KEY;
@@ -183,13 +176,11 @@ export const deleteCertification = async (req, res) => {
         `Contador de certificados decrementado para usuario ${userId}`
       );
     } catch (spaceError) {
-      // Log pero no fallar - no es crítico
       logger.warn(
         `No se pudo decrementar contador en Space: ${spaceError.message}`
       );
     }
 
-    // Eliminar la certificación del array
     profile.certifications = profile.certifications.filter(
       (cert) => cert._id.toString() !== certificationId
     );

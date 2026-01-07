@@ -16,8 +16,8 @@ vi.mock('../../../src/models/User.js', () => ({
 }));
 
 vi.mock('../../../src/services/tokenService.js', () => ({
-  generateAndStoreAccessToken: vi.fn(),
-  generateAndStoreRefreshToken: vi.fn(),
+  generateAndStoreAccessToken: vi.fn().mockResolvedValue('access-token'),
+  generateAndStoreRefreshToken: vi.fn().mockResolvedValue('refresh-token'),
 }));
 
 vi.mock('../../../src/config/redis.js', () => ({
@@ -47,6 +47,7 @@ vi.mock('qrcode', () => ({
 
 import * as twoFactorService from '../../../src/services/twoFactorService.js';
 import User from '../../../src/models/User.js';
+import * as tokenService from '../../../src/services/tokenService.js';
 import { authenticator } from 'otplib';
 
 describe('TwoFactorService', () => {
@@ -75,12 +76,14 @@ describe('TwoFactorService', () => {
       expect(mockUser.save).toHaveBeenCalled();
     });
 
-    it('should throw if user not found or 2FA already enabled', async () => {
+    it('should throw if user not found', async () => {
       User.findById.mockResolvedValue(null);
       await expect(twoFactorService.generateSetup('id')).rejects.toThrow(
         'Usuario no encontrado'
       );
+    });
 
+    it('should throw if 2FA already enabled', async () => {
       User.findById.mockResolvedValue({ isTwoFactorEnabled: true });
       await expect(twoFactorService.generateSetup('id')).rejects.toThrow(
         '2FA ya está activado'
@@ -110,7 +113,7 @@ describe('TwoFactorService', () => {
       expect(mockUser.isTwoFactorEnabled).toBe(true);
     });
 
-    it('should throw for invalid code or missing setup', async () => {
+    it('should throw for invalid code', async () => {
       const mockUser = { isTwoFactorEnabled: false, twoFactorSecret: 'SECRET' };
       User.findById.mockResolvedValue(mockUser);
       authenticator.verify.mockReturnValue(false);
@@ -118,7 +121,9 @@ describe('TwoFactorService', () => {
       await expect(twoFactorService.enable2FA('id', '000000')).rejects.toThrow(
         'Código de verificación inválido'
       );
+    });
 
+    it('should throw for missing setup', async () => {
       User.findById.mockResolvedValue({
         isTwoFactorEnabled: false,
         twoFactorSecret: null,
@@ -127,10 +132,27 @@ describe('TwoFactorService', () => {
         '2FA no iniciado'
       );
     });
+
+    it('should throw if user not found', async () => {
+      User.findById.mockResolvedValue(null);
+      await expect(twoFactorService.enable2FA('id', '123456')).rejects.toThrow(
+        'Usuario no encontrado'
+      );
+    });
+
+    it('should throw if 2FA already enabled', async () => {
+      User.findById.mockResolvedValue({
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+      });
+      await expect(twoFactorService.enable2FA('id', '123456')).rejects.toThrow(
+        '2FA ya está activado'
+      );
+    });
   });
 
   describe('disable2FA', () => {
-    it('should disable 2FA with valid OTP or backup code', async () => {
+    it('should disable 2FA with valid OTP', async () => {
       const mockUser = {
         isTwoFactorEnabled: true,
         twoFactorSecret: 'SECRET',
@@ -145,12 +167,35 @@ describe('TwoFactorService', () => {
       expect(mockUser.isTwoFactorEnabled).toBe(false);
     });
 
-    it('should throw if 2FA not enabled or invalid code', async () => {
+    it('should disable 2FA with valid backup code', async () => {
+      const mockUser = {
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: ['BACKUP12'],
+        save: vi.fn().mockResolvedValue(true),
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(false); // OTP fails
+
+      const result = await twoFactorService.disable2FA('id', 'BACKUP12');
+      expect(result).toBe(true);
+    });
+
+    it('should throw if 2FA not enabled', async () => {
       User.findById.mockResolvedValue({ isTwoFactorEnabled: false });
       await expect(twoFactorService.disable2FA('id', '123456')).rejects.toThrow(
         '2FA no está activado'
       );
+    });
 
+    it('should throw if user not found', async () => {
+      User.findById.mockResolvedValue(null);
+      await expect(twoFactorService.disable2FA('id', '123456')).rejects.toThrow(
+        'Usuario no encontrado'
+      );
+    });
+
+    it('should throw for invalid code', async () => {
       User.findById.mockResolvedValue({
         isTwoFactorEnabled: true,
         twoFactorSecret: 'S',
@@ -164,7 +209,7 @@ describe('TwoFactorService', () => {
   });
 
   describe('verifyCode', () => {
-    it('should verify OTP and backup codes correctly', async () => {
+    it('should verify OTP correctly', async () => {
       const mockUser = {
         isTwoFactorEnabled: true,
         twoFactorSecret: 'SECRET',
@@ -172,23 +217,75 @@ describe('TwoFactorService', () => {
         save: vi.fn().mockResolvedValue(true),
       };
       User.findById.mockResolvedValue(mockUser);
-
-      // Valid OTP
       authenticator.verify.mockReturnValue(true);
+
       expect(await twoFactorService.verifyCode('id', '123456')).toBe(true);
+    });
 
-      // Valid backup code (OTP fails)
-      authenticator.verify.mockReturnValue(false);
+    it('should verify backup code correctly', async () => {
+      const mockUser = {
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: ['BACKUP12'],
+        save: vi.fn().mockResolvedValue(true),
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(false); // OTP fails
+
       expect(await twoFactorService.verifyCode('id', 'BACKUP12')).toBe(true);
+      expect(mockUser.backupCodes).not.toContain('BACKUP12');
+    });
 
-      // Invalid code
-      mockUser.backupCodes = [];
+    it('should return false for invalid code', async () => {
+      const mockUser = {
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: [],
+        save: vi.fn().mockResolvedValue(true),
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(false);
+
       expect(await twoFactorService.verifyCode('id', 'INVALID')).toBe(false);
+    });
+
+    it('should throw if user not found', async () => {
+      User.findById.mockResolvedValue(null);
+      await expect(twoFactorService.verifyCode('id', '123456')).rejects.toThrow(
+        'Usuario no encontrado'
+      );
+    });
+
+    it('should throw if 2FA not enabled', async () => {
+      User.findById.mockResolvedValue({ isTwoFactorEnabled: false });
+      await expect(twoFactorService.verifyCode('id', '123456')).rejects.toThrow(
+        '2FA no está activado'
+      );
     });
   });
 
-  describe('getBackupCodes & regenerateBackupCodes', () => {
-    it('should get and regenerate backup codes', async () => {
+  describe('getBackupCodes', () => {
+    it('should return backup codes', async () => {
+      const mockUser = {
+        isTwoFactorEnabled: true,
+        backupCodes: ['OLD1', 'OLD2'],
+      };
+      User.findById.mockResolvedValue(mockUser);
+
+      const codes = await twoFactorService.getBackupCodes('id');
+      expect(codes).toEqual(['OLD1', 'OLD2']);
+    });
+
+    it('should throw if 2FA not enabled', async () => {
+      User.findById.mockResolvedValue({ isTwoFactorEnabled: false });
+      await expect(twoFactorService.getBackupCodes('id')).rejects.toThrow(
+        '2FA no está activado'
+      );
+    });
+  });
+
+  describe('regenerateBackupCodes', () => {
+    it('should regenerate backup codes with valid OTP', async () => {
       const mockUser = {
         isTwoFactorEnabled: true,
         twoFactorSecret: 'SECRET',
@@ -198,31 +295,46 @@ describe('TwoFactorService', () => {
       User.findById.mockResolvedValue(mockUser);
       authenticator.verify.mockReturnValue(true);
 
-      const codes = await twoFactorService.getBackupCodes('id');
-      expect(codes).toEqual(['OLD1', 'OLD2']);
-
       const newCodes = await twoFactorService.regenerateBackupCodes(
         'id',
         '123456'
       );
       expect(newCodes).toHaveLength(10);
     });
+
+    it('should throw for invalid code', async () => {
+      const mockUser = {
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: [],
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(false);
+
+      await expect(
+        twoFactorService.regenerateBackupCodes('id', 'INVALID')
+      ).rejects.toThrow('Código de verificación inválido');
+    });
   });
 
   describe('is2FAEnabled', () => {
-    it('should return correct enabled status', async () => {
+    it('should return true when enabled', async () => {
       User.findById.mockResolvedValue({ isTwoFactorEnabled: true });
       expect(await twoFactorService.is2FAEnabled('id')).toBe(true);
+    });
 
+    it('should return false when disabled', async () => {
       User.findById.mockResolvedValue({ isTwoFactorEnabled: false });
       expect(await twoFactorService.is2FAEnabled('id')).toBe(false);
+    });
 
+    it('should return false when user not found', async () => {
       User.findById.mockResolvedValue(null);
       expect(await twoFactorService.is2FAEnabled('id')).toBe(false);
     });
   });
 
-  describe('generateTempToken & verifyAndGenerateTokens', () => {
+  describe('generateTempToken', () => {
     it('should generate 64-char hex temp token', async () => {
       const result = await twoFactorService.generateTempToken({
         _id: 'id',
@@ -232,12 +344,69 @@ describe('TwoFactorService', () => {
       });
       expect(result).toHaveLength(64);
     });
+  });
 
+  describe('verifyAndGenerateTokens', () => {
     it('should throw for invalid temp token', async () => {
       redisMock.get.mockResolvedValue(null);
       await expect(
         twoFactorService.verifyAndGenerateTokens('invalid', '123456')
       ).rejects.toThrow('Token temporal inválido o expirado');
+    });
+
+    it('should throw for user not found', async () => {
+      const userData = JSON.stringify({ userId: 'id-123' });
+      redisMock.get.mockResolvedValue(userData);
+      User.findById.mockResolvedValue(null);
+
+      await expect(
+        twoFactorService.verifyAndGenerateTokens('valid-token', '123456')
+      ).rejects.toThrow('Usuario no encontrado');
+    });
+
+    it('should throw for invalid verification code', async () => {
+      const userData = JSON.stringify({ userId: 'id-123' });
+      redisMock.get.mockResolvedValue(userData);
+
+      const mockUser = {
+        _id: 'id-123',
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: [],
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(false);
+
+      await expect(
+        twoFactorService.verifyAndGenerateTokens('valid-token', 'WRONG')
+      ).rejects.toThrow('Código de verificación inválido');
+    });
+
+    it('should generate tokens on successful verification', async () => {
+      const userData = JSON.stringify({ userId: 'id-123' });
+      redisMock.get.mockResolvedValue(userData);
+
+      const mockUser = {
+        _id: 'id-123',
+        username: 'testuser',
+        email: 'test@test.com',
+        roles: ['beatmaker'],
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'SECRET',
+        backupCodes: [],
+        save: vi.fn().mockResolvedValue(true),
+      };
+      User.findById.mockResolvedValue(mockUser);
+      authenticator.verify.mockReturnValue(true);
+
+      const result = await twoFactorService.verifyAndGenerateTokens(
+        'valid-token',
+        '123456'
+      );
+
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+      expect(redisMock.del).toHaveBeenCalled();
     });
   });
 });
