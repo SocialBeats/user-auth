@@ -44,6 +44,10 @@ vi.mock('../../../src/services/emailService.js', () => ({
   sendPasswordChangedEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('../../../src/services/twoFactorService.js', () => ({
+  generateTempToken: vi.fn().mockResolvedValue('mock-temp-token-2fa'),
+}));
+
 // Import after mocks
 import * as authService from '../../../src/services/authService.js';
 import User from '../../../src/models/User.js';
@@ -459,6 +463,173 @@ describe('AuthService', () => {
 
       expect(result.deletedUserId).toBe(mockUserId.toString());
       expect(result.message).toBe('Cuenta eliminada exitosamente');
+    });
+  });
+
+  describe('loginUser with 2FA', () => {
+    it('should return require2FA when user has 2FA enabled', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        isTwoFactorEnabled: true,
+        comparePassword: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+
+      const result = await authService.loginUser('testuser', 'password123');
+
+      expect(result.require2FA).toBe(true);
+      expect(result.tempToken).toBeDefined();
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('should verify email successfully', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        emailVerified: false,
+        emailVerificationToken: 'valid-token',
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+
+      const result = await authService.verifyEmail('valid-token');
+
+      expect(User.findOne).toHaveBeenCalledWith({
+        emailVerificationToken: 'valid-token',
+        emailVerificationExpires: { $gt: expect.any(Date) },
+      });
+      expect(mockUser.emailVerified).toBe(true);
+      expect(mockUser.emailVerificationToken).toBeNull();
+      expect(mockUser.emailVerificationExpires).toBeNull();
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(result.username).toBe('testuser');
+    });
+
+    it('should throw error for invalid or expired token', async () => {
+      User.findOne.mockResolvedValue(null);
+
+      await expect(authService.verifyEmail('invalid-token')).rejects.toThrow(
+        'Token de verificación inválido o expirado'
+      );
+    });
+  });
+
+  describe('resendVerificationEmail', () => {
+    it('should resend verification email successfully', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        emailVerified: false,
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+
+      const result = await authService.resendVerificationEmail('test@test.com');
+
+      expect(User.findOne).toHaveBeenCalledWith({ email: 'test@test.com' });
+      expect(mockUser.emailVerificationToken).toBeDefined();
+      expect(mockUser.emailVerificationExpires).toBeDefined();
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(result.message).toBe('Email de verificación enviado');
+    });
+
+    it('should throw error if user not found', async () => {
+      User.findOne.mockResolvedValue(null);
+
+      await expect(
+        authService.resendVerificationEmail('nonexistent@test.com')
+      ).rejects.toThrow('Usuario no encontrado');
+    });
+
+    it('should throw error if email already verified', async () => {
+      const mockUser = {
+        email: 'test@test.com',
+        emailVerified: true,
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+
+      await expect(
+        authService.resendVerificationEmail('test@test.com')
+      ).rejects.toThrow('Email ya verificado');
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('should request password reset successfully for existing user', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+
+      const result = await authService.requestPasswordReset('test@test.com');
+
+      expect(User.findOne).toHaveBeenCalledWith({ email: 'test@test.com' });
+      expect(mockUser.passwordResetToken).toBeDefined();
+      expect(mockUser.passwordResetExpires).toBeDefined();
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(result.message).toContain('Si el email existe');
+    });
+
+    it('should return same message for non-existent user (security)', async () => {
+      User.findOne.mockResolvedValue(null);
+
+      const result = await authService.requestPasswordReset(
+        'nonexistent@test.com'
+      );
+
+      expect(result.message).toContain('Si el email existe');
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset password successfully', async () => {
+      const mockUser = {
+        _id: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+        passwordResetToken: 'valid-token',
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      User.findOne.mockResolvedValue(mockUser);
+      tokenService.revokeAllUserTokens.mockResolvedValue(2);
+
+      const result = await authService.resetPassword(
+        'valid-token',
+        'newPassword123'
+      );
+
+      expect(User.findOne).toHaveBeenCalledWith({
+        passwordResetToken: 'valid-token',
+        passwordResetExpires: { $gt: expect.any(Date) },
+      });
+      expect(mockUser.password).toBe('newPassword123');
+      expect(mockUser.passwordResetToken).toBeNull();
+      expect(mockUser.passwordResetExpires).toBeNull();
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(tokenService.revokeAllUserTokens).toHaveBeenCalled();
+      expect(result.message).toBe('Contraseña restablecida exitosamente');
+    });
+
+    it('should throw error for invalid or expired token', async () => {
+      User.findOne.mockResolvedValue(null);
+
+      await expect(
+        authService.resetPassword('invalid-token', 'newPassword123')
+      ).rejects.toThrow('Token de restablecimiento inválido o expirado');
     });
   });
 
