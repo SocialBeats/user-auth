@@ -1,19 +1,29 @@
 # Release v1.0.5
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: space connection mocked
 - fix: lint fix
 - fix: errors lang changed to spanish
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #65 from SocialBeats/develop
 - Merge pull request #64 from SocialBeats/fix/errors-lang
 
@@ -24,17 +34,27 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v1.0.4
 
 ## Features
+
 - feat: rollback to axios api call to space
 
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 No fixes added.
+
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #63 from SocialBeats/develop
 
 ## Full commit history
@@ -44,17 +64,27 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v1.0.3
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: boolean in space evaluation
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #62 from SocialBeats/develop
 
 ## Full commit history
@@ -64,17 +94,27 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v1.0.2
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: User import in controller
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #61 from SocialBeats/develop
 
 ## Full commit history
@@ -84,17 +124,27 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v1.0.1
 
 ## Features
+
 No new features.
+
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: profile target instead of user for faas
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #60 from SocialBeats/develop
 
 ## Full commit history
@@ -104,6 +154,7 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v1.0.0
 
 ## Features
+
 - feat: pricing adaptation back
 - feat: delete from s3 and cdn
 - feat: banner
@@ -113,17 +164,24 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 - feat: new dependencies
 
 ## Tests
+
 - test: updated tests and added new feature tests
 
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: add email in payments command
 - fix: fixed names
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #59 from SocialBeats/develop
 - Merge pull request #58 from SocialBeats/feat/pricing-profile
 - Merge pull request #57 from SocialBeats/feat/personalized-banner
@@ -140,21 +198,30 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v0.0.7
 
 ## Features
+
 - feat: added delete account feature
 - feat: command with payments
 - feat: updated endpoints and socialmedia handlers
 
 ## Tests
+
 No test changes.
+
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: fixed test
 - fix: incorrect redirection on email verification
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #54 from SocialBeats/develop
 - Merge pull request #53 from SocialBeats/feat/delete-account
 - Merge pull request #52 from SocialBeats/feat/suscription-command
@@ -167,23 +234,31 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v0.0.6
 
 ## Features
+
 - feat: rate limit with bottleneck
 - feat: update .env with internal api key
 - feat: API integration email and new features
 - feat: new endpoint
 
 ## Tests
+
 - test: augmented coverage
 
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: other image
 - fix: only unit tests in CI
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #47 from SocialBeats/develop
 - Merge pull request #45 from SocialBeats/feat/email-features
 - Merge branch 'feat/email-features' of https://github.com/SocialBeats/user-auth into feat/email-features
@@ -199,6 +274,7 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 # Release v0.0.5
 
 ## Features
+
 - feat: kafka events on actions
 - feat: kafka producer
 - feat: kafka init configuration
@@ -206,17 +282,24 @@ For full commit history, see [here](https://github.com/SocialBeats/user-auth/com
 - feat: handle profile completion steps
 
 ## Tests
+
 - test: tests for kafkaProducer
 - test: updated tests
 
 ## Documentation
+
 No documentation changes.
+
 ## Fixes
+
 - fix: linter fix
 
 ## Continuous integration (CI)
+
 No CI changes.
+
 ## Other changes
+
 - Merge pull request #41 from SocialBeats/develop
 - Merge pull request #40 from SocialBeats/feat/kafka
 - Merge branch 'feat/kafka' of https://github.com/SocialBeats/user-auth into feat/kafka
