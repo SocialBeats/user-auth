@@ -66,7 +66,6 @@ export const updateUserByUsername = async (username, updateData) => {
       throw new Error('Usuario no encontrado');
     }
 
-    // Whitelist of fields allowed to be updated
     const allowedFields = ['email', 'username'];
     Object.keys(updateData).forEach((key) => {
       if (allowedFields.includes(key)) {
@@ -75,10 +74,8 @@ export const updateUserByUsername = async (username, updateData) => {
     });
 
     await user.save();
-    // Re-query the updated user, excluding the password field
     const updatedUser = await User.findOne({ username }, '-password');
 
-    // Publish USER_UPDATED event to Kafka
     await publishUserEvent('USER_UPDATED', {
       _id: updatedUser._id.toString(),
       username: updatedUser.username,
@@ -101,21 +98,17 @@ export const updateUserByUsername = async (username, updateData) => {
  */
 export const deleteUser = async (userId) => {
   try {
-    // First, find the user to check their role
     const user = await User.findById(userId);
     if (!user) {
       throw new Error('Usuario no encontrado');
     }
-    // Check if the user is an admin
     if (user.role === 'admin') {
-      // Count number of admins
       const adminCount = await User.countDocuments({ role: 'admin' });
       if (adminCount <= 1) {
         throw new Error('No se puede eliminar el último administrador');
       }
     }
 
-    // Delete associated profile to maintain data consistency
     try {
       const profile = await getProfileByUserId(userId);
       if (profile) {
@@ -123,19 +116,16 @@ export const deleteUser = async (userId) => {
         logger.info(`Profile deleted for user ${userId}`);
       }
     } catch (profileError) {
-      // Log warning but don't fail the user deletion
       logger.warn(
         `Profile deletion failed for user ${userId}: ${profileError.message}`
       );
     }
 
-    // Publish USER_DELETED event to Kafka before deleting the user
     await publishUserEvent('USER_DELETED', {
       _id: userId.toString(),
       username: user.username,
     });
 
-    // Proceed to delete user only after successful event publication
     const deletedUser = await User.findByIdAndDelete(userId);
     logger.info(`User deleted: ${user.username}`);
     return deletedUser;

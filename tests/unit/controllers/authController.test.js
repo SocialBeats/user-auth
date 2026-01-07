@@ -12,6 +12,7 @@ vi.mock('../../../src/services/authService.js', () => ({
   requestPasswordReset: vi.fn(),
   resetPassword: vi.fn(),
   changePassword: vi.fn(),
+  deleteUserAccount: vi.fn(),
 }));
 
 vi.mock('../../../logger.js', () => ({
@@ -999,6 +1000,270 @@ describe('AuthController', () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ error: 'USER_NOT_FOUND' })
+      );
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      const req = mockRequest(
+        { currentPassword: 'oldPassword', newPassword: 'newPassword123' },
+        { id: 'user-123' }
+      );
+      const res = mockResponse();
+
+      authService.changePassword.mockRejectedValue(new Error('Database error'));
+
+      await authController.changePassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'CHANGE_PASSWORD_FAILED' })
+      );
+    });
+  });
+
+  describe('login with 2FA', () => {
+    it('should return 202 when 2FA is required', async () => {
+      const req = mockRequest({
+        identifier: 'testuser',
+        password: 'password123',
+      });
+      const res = mockResponse();
+
+      authService.loginUser.mockResolvedValue({
+        require2FA: true,
+        tempToken: 'temp-token-123',
+      });
+
+      await authController.login(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(202);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Se requiere verificación 2FA',
+        require2FA: true,
+        tempToken: 'temp-token-123',
+      });
+    });
+  });
+
+  describe('deleteUserInternal', () => {
+    it('should delete user successfully', async () => {
+      const req = mockRequest({}, null, { id: '507f1f77bcf86cd799439011' });
+      const res = mockResponse();
+
+      authService.deleteUserAccount = vi.fn().mockResolvedValue({
+        message: 'Usuario eliminado exitosamente',
+      });
+
+      await authController.deleteUserInternal(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Usuario eliminado exitosamente',
+        })
+      );
+    });
+
+    it('should return 400 if userId is missing', async () => {
+      const req = mockRequest({}, null, {});
+      const res = mockResponse();
+
+      await authController.deleteUserInternal(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'MISSING_USER_ID' })
+      );
+    });
+
+    it('should return 400 if userId format is invalid', async () => {
+      const req = mockRequest({}, null, { id: 'invalid-id' });
+      const res = mockResponse();
+
+      await authController.deleteUserInternal(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_USER_ID' })
+      );
+    });
+
+    it('should return 404 if user not found', async () => {
+      const req = mockRequest({}, null, { id: '507f1f77bcf86cd799439011' });
+      const res = mockResponse();
+
+      const error = new Error('Usuario no encontrado');
+      error.code = 'USER_NOT_FOUND';
+      authService.deleteUserAccount = vi.fn().mockRejectedValue(error);
+
+      await authController.deleteUserInternal(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'USER_NOT_FOUND' })
+      );
+    });
+
+    it('should return 500 on service error', async () => {
+      const req = mockRequest({}, null, { id: '507f1f77bcf86cd799439011' });
+      const res = mockResponse();
+
+      authService.deleteUserAccount = vi
+        .fn()
+        .mockRejectedValue(new Error('Database error'));
+
+      await authController.deleteUserInternal(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'DELETE_FAILED' })
+      );
+    });
+  });
+
+  describe('verifyEmail edge cases', () => {
+    it('should return 400 if token is not a string', async () => {
+      const req = mockRequest({}, null, {}, { token: 12345 });
+      const res = mockResponse();
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_DATA_TYPE' })
+      );
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      const req = mockRequest({}, null, {}, { token: 'valid-token' });
+      const res = mockResponse();
+
+      authService.verifyEmail.mockRejectedValue(new Error('Database error'));
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'VERIFICATION_FAILED' })
+      );
+    });
+  });
+
+  describe('resendVerificationEmail edge cases', () => {
+    it('should return 400 if email is not a string', async () => {
+      const req = mockRequest({ email: 12345 });
+      const res = mockResponse();
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_DATA_TYPE' })
+      );
+    });
+
+    it('should return 404 if user not found', async () => {
+      const req = mockRequest({ email: 'test@test.com' });
+      const res = mockResponse();
+
+      authService.resendVerificationEmail.mockRejectedValue(
+        new Error('Usuario no encontrado')
+      );
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'USER_NOT_FOUND' })
+      );
+    });
+
+    it('should return 400 if email already verified', async () => {
+      const req = mockRequest({ email: 'verified@test.com' });
+      const res = mockResponse();
+
+      authService.resendVerificationEmail.mockRejectedValue(
+        new Error('Email ya verificado')
+      );
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'ALREADY_VERIFIED' })
+      );
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      const req = mockRequest({ email: 'test@test.com' });
+      const res = mockResponse();
+
+      authService.resendVerificationEmail.mockRejectedValue(
+        new Error('Database error')
+      );
+
+      await authController.resendVerificationEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'RESEND_FAILED' })
+      );
+    });
+  });
+
+  describe('forgotPassword edge cases', () => {
+    it('should return 400 if email is not a string', async () => {
+      const req = mockRequest({ email: 12345 });
+      const res = mockResponse();
+
+      await authController.forgotPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_DATA_TYPE' })
+      );
+    });
+
+    it('should return 400 if email format is invalid', async () => {
+      const req = mockRequest({ email: 'invalid-email' });
+      const res = mockResponse();
+
+      await authController.forgotPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_EMAIL' })
+      );
+    });
+  });
+
+  describe('resetPassword edge cases', () => {
+    it('should return 400 if fields are not strings', async () => {
+      const req = mockRequest({ token: 12345, password: 'newpassword' });
+      const res = mockResponse();
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'INVALID_DATA_TYPE' })
+      );
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      const req = mockRequest({
+        token: 'valid-token',
+        password: 'newpassword123',
+      });
+      const res = mockResponse();
+
+      authService.resetPassword.mockRejectedValue(new Error('Database error'));
+
+      await authController.resetPassword(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'RESET_FAILED' })
       );
     });
   });

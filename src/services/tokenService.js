@@ -54,15 +54,12 @@ export const generateAndStoreAccessToken = async (user) => {
     roles: user.roles,
   };
 
-  // Generar JWT
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRY,
   });
 
-  // Extraer el jti (JWT ID) del token decodificado, o generar uno único
   const tokenId = crypto.randomBytes(16).toString('hex');
 
-  // Almacenar en Redis con estructura que permita validación y revocación
   const tokenData = {
     userId: user._id.toString(),
     username: user.username,
@@ -78,12 +75,10 @@ export const generateAndStoreAccessToken = async (user) => {
     JSON.stringify(tokenData)
   );
 
-  // Asociar el token con el usuario para poder revocar todos sus tokens
   const userTokensKey = `${USER_TOKENS_PREFIX}${user._id}:access`;
   await redis.sadd(userTokensKey, tokenId);
   await redis.expire(userTokensKey, ACCESS_TOKEN_EXPIRY_SECONDS);
 
-  // Almacenar mapeo token -> tokenId para validación rápida
   const tokenHashKey = `token_map:${token}`;
   await redis.setex(tokenHashKey, ACCESS_TOKEN_EXPIRY_SECONDS, tokenId);
 
@@ -99,14 +94,12 @@ export const generateAndStoreAccessToken = async (user) => {
 export const generateAndStoreRefreshToken = async (userId) => {
   const redis = getRedisClient();
 
-  // Generar token aleatorio seguro
   const token = crypto.randomBytes(64).toString('hex');
   const tokenId = crypto.randomBytes(16).toString('hex');
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
 
-  // Almacenar datos del refresh token
   const tokenData = {
     userId: userId.toString(),
     type: 'refresh',
@@ -122,12 +115,10 @@ export const generateAndStoreRefreshToken = async (userId) => {
     JSON.stringify(tokenData)
   );
 
-  // Asociar el token con el usuario
   const userTokensKey = `${USER_TOKENS_PREFIX}${userId}:refresh`;
   await redis.sadd(userTokensKey, tokenId);
   await redis.expire(userTokensKey, REFRESH_TOKEN_EXPIRY_SECONDS);
 
-  // Mapeo token -> tokenId
   const tokenHashKey = `token_map:${token}`;
   await redis.setex(tokenHashKey, REFRESH_TOKEN_EXPIRY_SECONDS, tokenId);
 
@@ -154,7 +145,6 @@ export const validateAccessTokenRedisOnly = async (token) => {
       return null;
     }
 
-    // Obtener datos del token de Redis
     const tokenKey = `${ACCESS_TOKEN_PREFIX}${tokenId}`;
     const tokenDataStr = await redis.get(tokenKey);
 
@@ -165,10 +155,8 @@ export const validateAccessTokenRedisOnly = async (token) => {
 
     const tokenData = JSON.parse(tokenDataStr);
 
-    // Decodificar JWT SIN verificar (ya lo hizo el gateway)
     const decoded = jwt.decode(token);
 
-    // Retornar datos combinados
     return {
       ...decoded,
       tokenId,
@@ -190,10 +178,8 @@ export const validateAccessToken = async (token) => {
   const redis = getRedisClient();
 
   try {
-    // 1. Verificar firma y expiración del JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 2. Verificar que el token existe en Redis (no ha sido revocado)
     const tokenHashKey = `token_map:${token}`;
     const tokenId = await redis.get(tokenHashKey);
 
@@ -202,7 +188,6 @@ export const validateAccessToken = async (token) => {
       return null;
     }
 
-    // 3. Obtener datos del token de Redis
     const tokenKey = `${ACCESS_TOKEN_PREFIX}${tokenId}`;
     const tokenDataStr = await redis.get(tokenKey);
 
@@ -213,7 +198,6 @@ export const validateAccessToken = async (token) => {
 
     const tokenData = JSON.parse(tokenDataStr);
 
-    // 4. Retornar los datos combinados del JWT y Redis
     return {
       ...decoded,
       tokenId,
@@ -240,7 +224,6 @@ export const validateRefreshToken = async (token) => {
   const redis = getRedisClient();
 
   try {
-    // 1. Obtener tokenId del mapeo
     const tokenHashKey = `token_map:${token}`;
     const tokenId = await redis.get(tokenHashKey);
 
@@ -249,7 +232,6 @@ export const validateRefreshToken = async (token) => {
       return null;
     }
 
-    // 2. Obtener datos del token
     const tokenKey = `${REFRESH_TOKEN_PREFIX}${tokenId}`;
     const tokenDataStr = await redis.get(tokenKey);
 
@@ -260,14 +242,12 @@ export const validateRefreshToken = async (token) => {
 
     const tokenData = JSON.parse(tokenDataStr);
 
-    // 3. Verificar que no haya expirado
     const expiresAt = new Date(tokenData.expiresAt);
     if (expiresAt < new Date()) {
       logger.warn('Refresh token expired');
       return null;
     }
 
-    // 4. Verificar si está en periodo de gracia
     const ttl = await redis.ttl(tokenKey);
     const isInGracePeriod = ttl > 0 && ttl <= GRACE_PERIOD_SECONDS;
 
@@ -295,7 +275,6 @@ export const rotateRefreshToken = async (oldToken, tokenData) => {
   try {
     const { tokenId, userId, isInGracePeriod } = tokenData;
 
-    // Si ya está en periodo de gracia, solo advertir pero permitir uso
     if (isInGracePeriod) {
       logger.warn(
         `Refresh token ${tokenId} is in grace period - allowing reuse`
@@ -313,7 +292,6 @@ export const rotateRefreshToken = async (oldToken, tokenData) => {
       );
     }
 
-    // Generar nuevo refresh token
     const newRefreshToken = await generateAndStoreRefreshToken(userId);
 
     logger.info(`Refresh token rotated for user: ${userId}`);
@@ -334,7 +312,6 @@ export const revokeToken = async (token, type = 'refresh') => {
   const redis = getRedisClient();
 
   try {
-    // Obtener tokenId
     const tokenHashKey = `token_map:${token}`;
     const tokenId = await redis.get(tokenHashKey);
 
@@ -343,7 +320,6 @@ export const revokeToken = async (token, type = 'refresh') => {
       return false;
     }
 
-    // Eliminar el token de Redis
     const prefix =
       type === 'access' ? ACCESS_TOKEN_PREFIX : REFRESH_TOKEN_PREFIX;
     const tokenKey = `${prefix}${tokenId}`;
@@ -370,7 +346,6 @@ export const revokeAllUserTokens = async (userId) => {
   try {
     let totalRevoked = 0;
 
-    // Revocar access tokens
     const accessTokensKey = `${USER_TOKENS_PREFIX}${userId}:access`;
     const accessTokenIds = await redis.smembers(accessTokensKey);
 
@@ -381,7 +356,6 @@ export const revokeAllUserTokens = async (userId) => {
     }
     await redis.del(accessTokensKey);
 
-    // Revocar refresh tokens
     const refreshTokensKey = `${USER_TOKENS_PREFIX}${userId}:refresh`;
     const refreshTokenIds = await redis.smembers(refreshTokensKey);
 

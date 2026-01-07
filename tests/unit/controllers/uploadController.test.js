@@ -323,5 +323,275 @@ describe('UploadController', () => {
         })
       );
     });
+
+    it('should generate presigned URL for banner', async () => {
+      getSignedUrl.mockResolvedValue('https://s3.example.com/url');
+
+      const req = mockRequest({
+        fileName: 'banner.jpg',
+        fileType: 'image/jpeg',
+        category: 'banner',
+      });
+      const res = mockResponse();
+
+      await getPresignedUrl(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileName: expect.stringContaining('banners/'),
+        })
+      );
+    });
+
+    it('should return 400 if certificate limit exceeded', async () => {
+      // Mock Space to return eval: false
+      const { spaceClient } = await import(
+        '../../../src/utils/spaceConnection.js'
+      );
+      spaceClient.features.evaluate.mockResolvedValueOnce({ eval: false });
+
+      const req = mockRequest({
+        fileName: 'cert.pdf',
+        fileType: 'application/pdf',
+        category: 'certification',
+      });
+      const res = mockResponse();
+
+      await getPresignedUrl(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.stringContaining('excedido'),
+        })
+      );
+    });
+  });
+
+  describe('deleteCertification', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    // Mock Profile model
+    vi.mock('../../../src/models/Profile.js', () => ({
+      default: {
+        findOne: vi.fn(),
+      },
+    }));
+
+    // Mock S3
+    vi.mock('@aws-sdk/client-s3', () => ({
+      PutObjectCommand: vi.fn(),
+      DeleteObjectCommand: vi.fn().mockImplementation((params) => params),
+    }));
+
+    vi.mock('../../../src/config/s3.js', () => ({
+      s3Client: {
+        send: vi.fn().mockResolvedValue({}),
+      },
+      BUCKET_NAME: 'test-bucket',
+      CDN_URL: 'https://cdn.example.com',
+    }));
+
+    vi.mock('../../../logger.js', () => ({
+      default: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+      },
+    }));
+
+    it('should delete certification successfully', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+      const { s3Client } = await import('../../../src/config/s3.js');
+
+      const mockProfile = {
+        userId: 'user-id',
+        certifications: [
+          {
+            _id: { toString: () => 'cert-id-1' },
+            url: 'https://cdn.example.com/certifications/test.pdf',
+            name: 'Test Cert',
+          },
+          {
+            _id: { toString: () => 'cert-id-2' },
+            url: 'https://cdn.example.com/certifications/test2.pdf',
+            name: 'Test Cert 2',
+          },
+        ],
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      Profile.findOne.mockResolvedValue(mockProfile);
+      s3Client.send.mockResolvedValue({});
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'cert-id-1' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      expect(Profile.findOne).toHaveBeenCalledWith({ userId: 'user-id' });
+      expect(mockProfile.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Certificación eliminada correctamente',
+        })
+      );
+    });
+
+    it('should return 404 if profile not found', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+
+      Profile.findOne.mockResolvedValue(null);
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'cert-id-1' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Perfil no encontrado' });
+    });
+
+    it('should return 404 if certification not found', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+
+      const mockProfile = {
+        userId: 'user-id',
+        certifications: [
+          {
+            _id: { toString: () => 'cert-id-other' },
+            url: 'https://cdn.example.com/certifications/test.pdf',
+          },
+        ],
+        save: vi.fn(),
+      };
+
+      Profile.findOne.mockResolvedValue(mockProfile);
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'nonexistent-cert' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Certificación no encontrada',
+      });
+    });
+
+    it('should handle S3 deletion error gracefully', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+      const { s3Client } = await import('../../../src/config/s3.js');
+
+      const mockProfile = {
+        userId: 'user-id',
+        certifications: [
+          {
+            _id: { toString: () => 'cert-id-1' },
+            url: 'https://cdn.example.com/certifications/test.pdf',
+            name: 'Test Cert',
+          },
+        ],
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      Profile.findOne.mockResolvedValue(mockProfile);
+      s3Client.send.mockRejectedValue(new Error('S3 error'));
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'cert-id-1' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      // Should still succeed even if S3 fails
+      expect(mockProfile.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Certificación eliminada correctamente',
+        })
+      );
+    });
+
+    it('should return 500 on unexpected error', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+
+      Profile.findOne.mockRejectedValue(new Error('Database error'));
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'cert-id-1' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Error al eliminar la certificación',
+      });
+    });
+
+    it('should handle certification URL without CDN prefix', async () => {
+      const { deleteCertification } = await import(
+        '../../../src/controllers/uploadController.js'
+      );
+      const Profile = (await import('../../../src/models/Profile.js')).default;
+      const { s3Client } = await import('../../../src/config/s3.js');
+
+      const mockProfile = {
+        userId: 'user-id',
+        certifications: [
+          {
+            _id: { toString: () => 'cert-id-1' },
+            url: 'https://other-cdn.com/file.pdf', // Different CDN
+            name: 'Test Cert',
+          },
+        ],
+        save: vi.fn().mockResolvedValue(true),
+      };
+
+      Profile.findOne.mockResolvedValue(mockProfile);
+
+      const req = {
+        user: { id: 'user-id' },
+        params: { certificationId: 'cert-id-1' },
+      };
+      const res = mockResponse();
+
+      await deleteCertification(req, res);
+
+      // Should NOT attempt S3 deletion for non-matching CDN
+      expect(s3Client.send).not.toHaveBeenCalled();
+      expect(mockProfile.save).toHaveBeenCalled();
+    });
   });
 });

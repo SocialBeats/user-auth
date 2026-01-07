@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Create mock functions we can control
+const mockSend = vi
+  .fn()
+  .mockResolvedValue({ data: { id: 'msg-123' }, error: null });
+
 vi.mock('resend', () => ({
   Resend: vi.fn().mockImplementation(() => ({
     emails: {
-      send: vi.fn().mockResolvedValue({ data: { id: 'msg-123' }, error: null }),
+      send: mockSend,
     },
   })),
 }));
@@ -31,10 +36,12 @@ import * as emailService from '../../../src/services/emailService.js';
 describe('EmailService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSend.mockResolvedValue({ data: { id: 'msg-123' }, error: null });
     process.env.RESEND_API_KEY = 'test-api-key';
     process.env.EMAIL_FROM = 'Test <test@test.com>';
     process.env.APP_NAME = 'TestApp';
     process.env.FRONTEND_URL = 'http://localhost:3000';
+    emailService.resetCircuitBreaker();
   });
 
   describe('Circuit Breaker', () => {
@@ -88,6 +95,17 @@ describe('EmailService', () => {
       expect(status.state).toBe('CLOSED');
       expect(status.failures).toBe(0);
     });
+
+    it('should set successes and lastFailureTime when setting state', () => {
+      emailService.setCircuitBreakerState('HALF_OPEN', {
+        failures: 3,
+        nextAttempt: Date.now() + 10000,
+      });
+
+      const status = emailService.getCircuitBreakerStatus();
+      expect(status.state).toBe('HALF_OPEN');
+      expect(status.failures).toBe(3);
+    });
   });
 
   describe('Rate Limiter', () => {
@@ -110,6 +128,33 @@ describe('EmailService', () => {
 
       expect(result).toEqual({ success: true, messageId: 'msg-123' });
     });
+
+    it('should throw error when email send fails', async () => {
+      mockSend.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Send failed' },
+      });
+
+      await expect(
+        emailService.sendVerificationEmail({
+          email: 'test@example.com',
+          username: 'testuser',
+          verificationToken: 'abc123',
+        })
+      ).rejects.toThrow('Send failed');
+    });
+
+    it('should throw error when email service throws', async () => {
+      mockSend.mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(
+        emailService.sendVerificationEmail({
+          email: 'test@example.com',
+          username: 'testuser',
+          verificationToken: 'abc123',
+        })
+      ).rejects.toThrow('Network error');
+    });
   });
 
   describe('sendPasswordResetEmail', () => {
@@ -122,6 +167,21 @@ describe('EmailService', () => {
 
       expect(result).toEqual({ success: true, messageId: 'msg-123' });
     });
+
+    it('should throw error when email send fails', async () => {
+      mockSend.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Reset email failed' },
+      });
+
+      await expect(
+        emailService.sendPasswordResetEmail({
+          email: 'test@example.com',
+          username: 'testuser',
+          resetToken: 'reset123',
+        })
+      ).rejects.toThrow();
+    });
   });
 
   describe('sendPasswordChangedEmail', () => {
@@ -133,6 +193,20 @@ describe('EmailService', () => {
 
       expect(result).toEqual({ success: true, messageId: 'msg-123' });
     });
+
+    it('should throw error when email send fails', async () => {
+      mockSend.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Changed email failed' },
+      });
+
+      await expect(
+        emailService.sendPasswordChangedEmail({
+          email: 'test@example.com',
+          username: 'testuser',
+        })
+      ).rejects.toThrow();
+    });
   });
 
   describe('sendWelcomeEmail', () => {
@@ -143,6 +217,20 @@ describe('EmailService', () => {
       });
 
       expect(result).toEqual({ success: true, messageId: 'msg-123' });
+    });
+
+    it('should throw error when email send fails', async () => {
+      mockSend.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Welcome email failed' },
+      });
+
+      await expect(
+        emailService.sendWelcomeEmail({
+          email: 'test@example.com',
+          username: 'testuser',
+        })
+      ).rejects.toThrow();
     });
   });
 });

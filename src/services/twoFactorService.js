@@ -31,16 +31,12 @@ export const generateSetup = async (userId) => {
     throw new Error('2FA ya está activado');
   }
 
-  // Generar secreto
   const secret = authenticator.generateSecret();
 
-  // Generar URL OTPAuth
   const otpauthUrl = authenticator.keyuri(user.email, APP_NAME, secret);
 
-  // Generar QR code como data URL (base64)
   const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
-  // Guardar secreto temporalmente (sin activar 2FA todavía)
   user.twoFactorSecret = secret;
   await user.save();
 
@@ -88,7 +84,6 @@ export const enable2FA = async (userId, code) => {
     throw new Error('2FA no iniciado. Llame a /2fa/setup primero');
   }
 
-  // Verificar que el código es válido
   const isValid = authenticator.verify({
     token: code,
     secret: user.twoFactorSecret,
@@ -98,10 +93,8 @@ export const enable2FA = async (userId, code) => {
     throw new Error('Código de verificación inválido');
   }
 
-  // Generar códigos de backup
   const backupCodes = generateBackupCodes(10);
 
-  // Activar 2FA
   user.isTwoFactorEnabled = true;
   user.backupCodes = backupCodes;
   await user.save();
@@ -130,7 +123,6 @@ export const disable2FA = async (userId, code) => {
     throw new Error('2FA no está activado');
   }
 
-  // Verificar código OTP o backup
   const isValidOTP = authenticator.verify({
     token: code,
     secret: user.twoFactorSecret,
@@ -143,12 +135,10 @@ export const disable2FA = async (userId, code) => {
     throw new Error('Código de verificación inválido');
   }
 
-  // Si usó un código de backup, eliminarlo
   if (isValidBackup) {
     user.backupCodes.splice(backupCodeIndex, 1);
   }
 
-  // Desactivar 2FA
   user.isTwoFactorEnabled = false;
   user.twoFactorSecret = null;
   user.backupCodes = [];
@@ -175,7 +165,6 @@ export const verifyCode = async (userId, code) => {
     throw new Error('2FA no está activado para este usuario');
   }
 
-  // Verificar código OTP
   const isValidOTP = authenticator.verify({
     token: code,
     secret: user.twoFactorSecret,
@@ -185,10 +174,8 @@ export const verifyCode = async (userId, code) => {
     return true;
   }
 
-  // Verificar si es un código de backup
   const backupCodeIndex = user.backupCodes.indexOf(code.toUpperCase());
   if (backupCodeIndex !== -1) {
-    // Eliminar el código de backup usado (one-time use)
     user.backupCodes.splice(backupCodeIndex, 1);
     await user.save();
     logger.info(`Backup code used for user: ${user.username}`);
@@ -232,7 +219,6 @@ export const regenerateBackupCodes = async (userId, code) => {
     throw new Error('2FA no está activado');
   }
 
-  // Verificar código OTP
   const isValid = authenticator.verify({
     token: code,
     secret: user.twoFactorSecret,
@@ -242,7 +228,6 @@ export const regenerateBackupCodes = async (userId, code) => {
     throw new Error('Código de verificación inválido');
   }
 
-  // Generar nuevos códigos de backup
   const backupCodes = generateBackupCodes(10);
   user.backupCodes = backupCodes;
   await user.save();
@@ -260,7 +245,6 @@ export const regenerateBackupCodes = async (userId, code) => {
 export const generateTempToken = async (user) => {
   const tempToken = crypto.randomBytes(32).toString('hex');
 
-  // Almacenar en Redis con expiración
   const redis = getRedisClient();
   const key = `2fa_temp:${tempToken}`;
   await redis.setex(
@@ -289,7 +273,6 @@ export const verifyAndGenerateTokens = async (tempToken, code) => {
   const redis = getRedisClient();
   const key = `2fa_temp:${tempToken}`;
 
-  // Obtener datos del token temporal
   const tempData = await redis.get(key);
   if (!tempData) {
     throw new Error('Token temporal inválido o expirado');
@@ -297,22 +280,18 @@ export const verifyAndGenerateTokens = async (tempToken, code) => {
 
   const userData = JSON.parse(tempData);
 
-  // Verificar código OTP
   const isValid = await verifyCode(userData.userId, code);
   if (!isValid) {
     throw new Error('Código de verificación inválido');
   }
 
-  // Eliminar token temporal
   await redis.del(key);
 
-  // Obtener el usuario completo para generar tokens
   const user = await User.findById(userData.userId);
   if (!user) {
     throw new Error('Usuario no encontrado');
   }
 
-  // Generar tokens finales
   const accessToken = await tokenService.generateAndStoreAccessToken(user);
   const refreshToken = await tokenService.generateAndStoreRefreshToken(
     user._id

@@ -10,14 +10,12 @@ export async function createProfile(userData) {
   try {
     const { userId, username, email } = userData;
 
-    // Validar que los datos requeridos estén presentes
     if (!userId || !username || !email) {
       throw new Error(
         'Se necesita userId, username y email para crear un perfil'
       );
     }
 
-    // Crear el perfil con valores por defecto
     const profile = new Profile({
       userId,
       username,
@@ -336,19 +334,15 @@ export async function getProfileCompletionStatus(userId) {
       },
     ];
 
-    // Calcular porcentaje basado solo en pasos requeridos
     const requiredSteps = steps.filter((s) => s.required);
     const completedRequired = requiredSteps.filter((s) => s.completed).length;
     const completionPercentage = Math.round(
       (completedRequired / requiredSteps.length) * 100
     );
 
-    // Determinar nivel de verificación
-    // Una vez verificada la identidad, siempre es verificado (permanente)
     const verificationLevel =
       profile.identityVerified === true ? 'verified' : 'none';
 
-    // Encontrar el siguiente paso requerido incompleto
     const nextStep = steps.find((s) => s.required && !s.completed) || null;
 
     return {

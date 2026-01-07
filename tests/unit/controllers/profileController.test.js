@@ -404,6 +404,201 @@ describe('ProfileController', () => {
     });
   });
 
+  describe('getProfileByUserId', () => {
+    it('should return profile by userId successfully', async () => {
+      const mockProfile = {
+        userId: 'user-id',
+        username: 'testuser',
+        email: 'test@test.com',
+      };
+      const req = mockRequest({}, null, { userId: 'user-id' });
+      req.params = { userId: 'user-id' };
+      const res = mockResponse();
+
+      profileService.getProfileByUserId = vi
+        .fn()
+        .mockResolvedValue(mockProfile);
+
+      await profileController.getProfileByUserId(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockProfile);
+    });
+
+    it('should return 404 if profile not found by userId', async () => {
+      const req = mockRequest({}, null, { userId: 'nonexistent' });
+      req.params = { userId: 'nonexistent' };
+      const res = mockResponse();
+
+      profileService.getProfileByUserId = vi.fn().mockResolvedValue(null);
+
+      await profileController.getProfileByUserId(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'PROFILE_NOT_FOUND',
+        })
+      );
+    });
+
+    it('should call next on error', async () => {
+      const req = mockRequest({}, null, { userId: 'user-id' });
+      req.params = { userId: 'user-id' };
+      const res = mockResponse();
+      const error = new Error('Database error');
+
+      profileService.getProfileByUserId = vi.fn().mockRejectedValue(error);
+
+      await profileController.getProfileByUserId(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('searchProfiles', () => {
+    it('should search profiles successfully', async () => {
+      const mockProfiles = [
+        { userId: '1', username: 'user1' },
+        { userId: '2', username: 'user2' },
+      ];
+      const req = { query: { q: 'user' } };
+      const res = mockResponse();
+
+      profileService.searchProfiles = vi.fn().mockResolvedValue(mockProfiles);
+
+      await profileController.searchProfiles(req, res, mockNext);
+
+      expect(profileService.searchProfiles).toHaveBeenCalledWith('user');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ profiles: mockProfiles });
+    });
+
+    it('should return 400 if search term is missing', async () => {
+      const req = { query: {} };
+      const res = mockResponse();
+
+      await profileController.searchProfiles(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'MISSING_SEARCH_TERM',
+        message: 'El término de búsqueda (q) es requerido',
+      });
+    });
+
+    it('should call next on error', async () => {
+      const req = { query: { q: 'user' } };
+      const res = mockResponse();
+      const error = new Error('Search error');
+
+      profileService.searchProfiles = vi.fn().mockRejectedValue(error);
+
+      await profileController.searchProfiles(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('getAllProfiles', () => {
+    it('should get all profiles with pagination', async () => {
+      const mockResult = {
+        profiles: [{ userId: '1' }, { userId: '2' }],
+        pagination: { total: 2, page: 1, limit: 20 },
+      };
+      const req = { query: { page: '1', limit: '20' } };
+      const res = mockResponse();
+
+      profileService.getAllProfiles = vi.fn().mockResolvedValue(mockResult);
+
+      await profileController.getAllProfiles(req, res, mockNext);
+
+      expect(profileService.getAllProfiles).toHaveBeenCalledWith(1, 20);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockResult);
+    });
+
+    it('should use default pagination values', async () => {
+      const mockResult = { profiles: [], pagination: {} };
+      const req = { query: {} };
+      const res = mockResponse();
+
+      profileService.getAllProfiles = vi.fn().mockResolvedValue(mockResult);
+
+      await profileController.getAllProfiles(req, res, mockNext);
+
+      expect(profileService.getAllProfiles).toHaveBeenCalledWith(1, 20);
+    });
+
+    it('should call next on error', async () => {
+      const req = { query: {} };
+      const res = mockResponse();
+      const error = new Error('Database error');
+
+      profileService.getAllProfiles = vi.fn().mockRejectedValue(error);
+
+      await profileController.getAllProfiles(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('getCompletionStatus', () => {
+    it('should get completion status successfully', async () => {
+      const mockStatus = {
+        steps: [],
+        completionPercentage: 50,
+        verificationLevel: 'none',
+      };
+      const req = mockRequest({}, { id: 'user-id' });
+      const res = mockResponse();
+
+      profileService.getProfileCompletionStatus = vi
+        .fn()
+        .mockResolvedValue(mockStatus);
+
+      await profileController.getCompletionStatus(req, res, mockNext);
+
+      expect(profileService.getProfileCompletionStatus).toHaveBeenCalledWith(
+        'user-id'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockStatus);
+    });
+
+    it('should return 404 if profile not found', async () => {
+      const req = mockRequest({}, { id: 'user-id' });
+      const res = mockResponse();
+
+      profileService.getProfileCompletionStatus = vi
+        .fn()
+        .mockRejectedValue(new Error('Perfil no encontrado'));
+
+      await profileController.getCompletionStatus(req, res, mockNext);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'PROFILE_NOT_FOUND',
+        })
+      );
+    });
+
+    it('should call next on unexpected error', async () => {
+      const req = mockRequest({}, { id: 'user-id' });
+      const res = mockResponse();
+      const error = new Error('Unexpected error');
+
+      profileService.getProfileCompletionStatus = vi
+        .fn()
+        .mockRejectedValue(error);
+
+      await profileController.getCompletionStatus(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
   describe('deleteMyProfile', () => {
     const mockAuthService = {
       deleteUserAccount: vi.fn(),
