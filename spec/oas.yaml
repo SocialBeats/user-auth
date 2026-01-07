@@ -120,7 +120,10 @@ paths:
                   such file or directory, open 'CHANGELOG.md'
   /api/v1/admin/create-admin:
     post:
-      summary: Create a new admin user
+      summary: Crea un nuevo usuario administrador
+      description: |
+        Crea un nuevo usuario con rol de administrador.
+        Solo accesible por administradores existentes.
       tags:
         - Admin
       security:
@@ -138,28 +141,136 @@ paths:
               properties:
                 username:
                   type: string
+                  minLength: 3
+                  description: Nombre de usuario único
+                  example: admin_user
                 email:
                   type: string
+                  format: email
+                  description: Email único del administrador
+                  example: admin@example.com
                 password:
                   type: string
+                  minLength: 6
+                  description: Contraseña del administrador
+                  example: secureAdminPass123
       responses:
         '201':
-          description: Admin created successfully
+          description: Administrador creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Administrador creado exitosamente
+        '400':
+          description: Campos faltantes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: MISSING_FIELDS
+                  message:
+                    type: string
+                    example: Se necesitan el nombre de usuario, email y contraseña
+        '401':
+          description: No autenticado
         '403':
-          description: Forbidden (requires admin role)
+          description: Prohibido (requiere rol de administrador)
+        '409':
+          description: Usuario o email ya existe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: DUPLICATE_ENTRY
+                  message:
+                    type: string
+                    example: El usuario ya existe
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CREATION_FAILED
+                  message:
+                    type: string
+                    example: Error al crear el administrador
   /api/v1/admin/users:
     get:
-      summary: List all users
+      summary: Lista todos los usuarios
+      description: Obtiene una lista de todos los usuarios registrados en el sistema
       tags:
         - Admin
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: List of users
+          description: Lista de usuarios obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      description: ID del usuario
+                      example: 507f1f77bcf86cd799439011
+                    username:
+                      type: string
+                      example: john_doe
+                    email:
+                      type: string
+                      example: john@example.com
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - beatmaker
+                    emailVerified:
+                      type: boolean
+                      example: true
+                    createdAt:
+                      type: string
+                      format: date-time
+        '401':
+          description: No autenticado
+        '403':
+          description: Prohibido (requiere rol de administrador)
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FETCH_FAILED
+                  message:
+                    type: string
+                    example: Error al obtener los usuarios
   /api/v1/admin/users/username/{username}:
     get:
-      summary: Get a user by username
+      summary: Obtiene un usuario por su username
+      description: >-
+        Busca y devuelve los detalles de un usuario específico por su nombre de
+        usuario
       tags:
         - Admin
       security:
@@ -170,14 +281,70 @@ paths:
           required: true
           schema:
             type: string
+          description: Nombre de usuario a buscar
+          example: john_doe
       responses:
         '200':
-          description: User details
+          description: Detalles del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: 507f1f77bcf86cd799439011
+                  username:
+                    type: string
+                    example: john_doe
+                  email:
+                    type: string
+                    example: john@example.com
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - beatmaker
+                  emailVerified:
+                    type: boolean
+                    example: true
+        '401':
+          description: No autenticado
+        '403':
+          description: Prohibido (requiere rol de administrador)
         '404':
-          description: User not found
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: Usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FETCH_FAILED
+                  message:
+                    type: string
+                    example: Error al obtener el usuario
   /api/v1/admin/users/{id}:
     get:
-      summary: Get a user by ID
+      summary: Obtiene un usuario por su ID
+      description: >-
+        Busca y devuelve los detalles de un usuario específico por su ID de
+        MongoDB
       tags:
         - Admin
       security:
@@ -188,13 +355,69 @@ paths:
           required: true
           schema:
             type: string
+          description: ID de MongoDB del usuario
+          example: 507f1f77bcf86cd799439011
       responses:
         '200':
-          description: User details
+          description: Detalles del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: 507f1f77bcf86cd799439011
+                  username:
+                    type: string
+                    example: john_doe
+                  email:
+                    type: string
+                    example: john@example.com
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - beatmaker
+                  emailVerified:
+                    type: boolean
+                    example: true
+        '401':
+          description: No autenticado
+        '403':
+          description: Prohibido (requiere rol de administrador)
         '404':
-          description: User not found
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: Usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FETCH_FAILED
+                  message:
+                    type: string
+                    example: Error al obtener el usuario
     delete:
-      summary: Delete a user
+      summary: Elimina un usuario por su ID
+      description: |
+        Elimina permanentemente un usuario del sistema.
+        Esta acción es irreversible.
       tags:
         - Admin
       security:
@@ -205,12 +428,53 @@ paths:
           required: true
           schema:
             type: string
+          description: ID de MongoDB del usuario a eliminar
+          example: 507f1f77bcf86cd799439011
       responses:
         '200':
-          description: User deleted successfully
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Usuario eliminado exitosamente
+        '401':
+          description: No autenticado
+        '403':
+          description: Prohibido (requiere rol de administrador)
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: Usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: DELETE_FAILED
+                  message:
+                    type: string
+                    example: Error al eliminar el usuario
   /api/v1/admin/users/{username}:
     put:
-      summary: Update a user by username
+      summary: Actualiza un usuario por su username
+      description: Permite a un administrador actualizar cualquier campo de un usuario
       tags:
         - Admin
       security:
@@ -221,14 +485,81 @@ paths:
           required: true
           schema:
             type: string
+          description: Nombre de usuario a actualizar
+          example: john_doe
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Nuevo email
+                roles:
+                  type: array
+                  items:
+                    type: string
+                  description: Nuevos roles del usuario
+                emailVerified:
+                  type: boolean
+                  description: Estado de verificación del email
       responses:
         '200':
-          description: User updated successfully
+          description: Usuario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Usuario actualizado exitosamente
+                  user:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          description: No autenticado
+        '403':
+          description: Prohibido (requiere rol de administrador)
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: Usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: UPDATE_FAILED
+                  message:
+                    type: string
+                    example: Error al actualizar el usuario
   /api/v1/auth/register:
     post:
       summary: Registra un nuevo usuario como beatmaker
@@ -432,6 +763,9 @@ paths:
   /api/v1/auth/refresh:
     post:
       summary: Refresca el access token usando un refresh token
+      description: >-
+        Genera nuevos tokens de acceso usando el refresh token. Implementa
+        rotación de refresh tokens.
       tags:
         - Auth
       requestBody:
@@ -445,9 +779,11 @@ paths:
               properties:
                 refreshToken:
                   type: string
+                  description: Refresh token actual
+                  example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
       responses:
         '200':
-          description: Nuevo access token generado
+          description: Nuevos tokens generados exitosamente
           content:
             application/json:
               schema:
@@ -455,15 +791,56 @@ paths:
                 properties:
                   message:
                     type: string
-                    description: Mensaje de éxito
+                    example: Token actualizado exitosamente
                   accessToken:
                     type: string
-                    description: Nuevo access token
+                    description: Nuevo access token (JWT)
                   refreshToken:
                     type: string
                     description: Nuevo refresh token (rotado)
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - MISSING_REFRESH_TOKEN
+                      - INVALID_DATA_TYPE
+                      - EMPTY_REFRESH_TOKEN
+                    example: MISSING_REFRESH_TOKEN
+                  message:
+                    type: string
+                    example: Se necesita el refresh token
         '401':
           description: Refresh token inválido o expirado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REFRESH_TOKEN
+                  message:
+                    type: string
+                    example: El refresh token es inválido o ha expirado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: REFRESH_FAILED
+                  message:
+                    type: string
+                    example: Error al actualizar el token
   /api/v1/auth/logout:
     post:
       summary: Cierra sesión revocando tokens (refresh y opcionalmente access)
@@ -541,21 +918,66 @@ paths:
                     example: Logout failed
   /api/v1/auth/revoke-all:
     post:
-      summary: Revoca todos los tokens de un usuario (requiere autenticación)
+      summary: Revoca todos los tokens de un usuario
+      description: >
+        Revoca todos los access y refresh tokens activos del usuario
+        autenticado.
+
+        Útil para cerrar sesión en todos los dispositivos.
       tags:
         - Auth
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Todos los tokens revocados
+          description: Todos los tokens revocados exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Todos los tokens han sido revocados exitosamente
+                  revokedCount:
+                    type: integer
+                    description: Número de tokens revocados
+                    example: 5
         '401':
           description: No autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: AUTHENTICATION_REQUIRED
+                  message:
+                    type: string
+                    example: Autenticación requerida
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: REVOKE_FAILED
+                  message:
+                    type: string
+                    example: Error al revocar los tokens
   /api/v1/auth/validate-token:
     post:
-      summary: Valida un access token contra Redis (usado por API Gateway)
+      summary: Valida un access token contra Redis
+      description: |
+        Endpoint interno usado por el API Gateway para validar tokens.
+        Verifica que el token no haya sido revocado en Redis.
+        Devuelve siempre 200 con `valid: true/false`.
       tags:
-        - Auth
+        - Internal
       requestBody:
         required: true
         content:
@@ -567,10 +989,11 @@ paths:
               properties:
                 token:
                   type: string
-                  description: Access token a validar
+                  description: Access token (JWT) a validar
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       responses:
         '200':
-          description: Resultado de la validación
+          description: Resultado de la validación (siempre devuelve 200)
           content:
             application/json:
               schema:
@@ -578,19 +1001,67 @@ paths:
                 properties:
                   valid:
                     type: boolean
+                    description: true si el token es válido, false si no
                   user:
                     type: object
+                    description: Datos del usuario (solo si valid=true)
                     properties:
                       id:
                         type: string
+                        example: 507f1f77bcf86cd799439011
                       username:
                         type: string
+                        example: john_doe
                       email:
                         type: string
+                        example: john@example.com
                       roles:
                         type: array
                         items:
                           type: string
+                        example:
+                          - beatmaker
+                  error:
+                    type: string
+                    description: Código de error (solo si valid=false)
+                    enum:
+                      - MISSING_TOKEN
+                      - INVALID_TOKEN
+                  message:
+                    type: string
+                    description: Mensaje de error (solo si valid=false)
+        '400':
+          description: Token no proporcionado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: MISSING_TOKEN
+                  message:
+                    type: string
+                    example: Token no proporcionado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: VALIDATION_FAILED
+                  message:
+                    type: string
+                    example: Error en la validación del token
   /api/v1/auth/verify-email:
     get:
       summary: Verifica el email del usuario usando un token
@@ -933,21 +1404,33 @@ paths:
       tags:
         - Internal
       summary: Actualizar estado de verificación (Interno)
-      description: >-
+      description: >
         Endpoint protegido por API Key interna para actualizar estado de
         verificación desde FaaS/Webhooks.
+
+        Usado por el sistema de verificación de identidad (Persona).
       parameters:
+        - in: header
+          name: x-internal-api-key
+          required: true
+          schema:
+            type: string
+          description: API Key interna para autenticación entre microservicios
         - in: path
           name: userId
           required: true
           schema:
             type: string
+          description: ID del usuario (MongoDB ObjectId)
+          example: 507f1f77bcf86cd799439011
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - status
               properties:
                 status:
                   type: string
@@ -955,13 +1438,43 @@ paths:
                     - VERIFICADO
                     - PENDING
                     - REJECTED
+                  description: Nuevo estado de verificación
                 provider_id:
                   type: string
+                  description: ID del proveedor de verificación (Persona)
       responses:
         '200':
-          description: Status updated
+          description: Estado actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Estado de verificación actualizado correctamente
         '401':
-          description: Invalid Internal API Key
+          description: API Key interna inválida o faltante
+        '404':
+          description: Perfil de usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Perfil de usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Error interno del servidor
   /api/v1/profile/me:
     get:
       tags:
@@ -1151,50 +1664,19 @@ paths:
           schema:
             type: integer
             default: 1
+            minimum: 1
           description: Número de página
         - in: query
           name: limit
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 100
           description: Número de resultados por página
       responses:
         '200':
-          description: Lista de perfiles
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  profiles:
-                    type: array
-                    items:
-                      type: object
-                  pagination:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
-                      page:
-                        type: integer
-                      pages:
-                        type: integer
-  /api/v1/profile/search:
-    get:
-      tags:
-        - Profile
-      summary: Buscar perfiles
-      description: Busca perfiles por username, nombre completo o email
-      parameters:
-        - in: query
-          name: q
-          required: true
-          schema:
-            type: string
-          description: Término de búsqueda (username, email, nombre)
-      responses:
-        '200':
-          description: Lista de perfiles encontrados
+          description: Lista de perfiles obtenida exitosamente
           content:
             application/json:
               schema:
@@ -1213,18 +1695,91 @@ paths:
                           type: string
                         avatar:
                           type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 150
+                      page:
+                        type: integer
+                        example: 1
+                      pages:
+                        type: integer
+                        example: 8
+                      limit:
+                        type: integer
+                        example: 20
+        '500':
+          description: Error del servidor
+  /api/v1/profile/search:
+    get:
+      tags:
+        - Profile
+      summary: Buscar perfiles
+      description: Busca perfiles por username, nombre completo o email
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Término de búsqueda (username, email, nombre)
+          example: john
+      responses:
+        '200':
+          description: Lista de perfiles encontrados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: 507f1f77bcf86cd799439011
+                        username:
+                          type: string
+                          example: john_doe
+                        full_name:
+                          type: string
+                          example: John Doe
+                        avatar:
+                          type: string
+                          example: https://cdn.example.com/avatars/john.jpg
                         email:
                           type: string
+                          example: john@example.com
         '400':
           description: Término de búsqueda faltante
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: MISSING_SEARCH_TERM
+                  message:
+                    type: string
+                    example: El término de búsqueda (q) es requerido
+        '500':
+          description: Error del servidor
   /api/v1/profile/{identifier}:
     get:
       tags:
         - Profile
       summary: Obtener perfil por userId o username
-      description: >-
-        Obtiene el perfil público de un usuario. Detecta automáticamente si el
-        parámetro es un userId (ObjectId de 24 caracteres) o un username.
+      description: >
+        Obtiene el perfil público de un usuario.
+
+        Detecta automáticamente si el parámetro es un userId (ObjectId de 24
+        caracteres hex) o un username.
       parameters:
         - in: path
           name: identifier
@@ -1232,6 +1787,7 @@ paths:
           schema:
             type: string
           description: userId (ObjectId) o username del usuario
+          example: john_doe
       responses:
         '200':
           description: Perfil obtenido exitosamente
@@ -1242,16 +1798,25 @@ paths:
                 properties:
                   userId:
                     type: string
+                    example: 507f1f77bcf86cd799439011
                   username:
                     type: string
+                    example: john_doe
                   email:
                     type: string
+                    example: john@example.com
                   about_me:
                     type: string
+                    example: Soy un beatmaker de Madrid
                   avatar:
                     type: string
+                    example: https://cdn.example.com/avatars/john.jpg
+                  banner:
+                    type: string
+                    example: https://cdn.example.com/banners/john.jpg
                   full_name:
                     type: string
+                    example: John Doe
                   contact:
                     type: object
                   studies:
@@ -1262,11 +1827,34 @@ paths:
                       type: string
                   certifications:
                     type: array
+                  identityVerified:
+                    type: boolean
+                    example: false
+                  verificationLevel:
+                    type: string
+                    enum:
+                      - none
+                      - verified
+                    example: none
         '404':
           description: Perfil no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: PROFILE_NOT_FOUND
+                  message:
+                    type: string
+                    example: Perfil no encontrado
+        '500':
+          description: Error del servidor
   /api/v1/auth/2fa/status:
     get:
       summary: Obtiene el estado de 2FA del usuario
+      description: Devuelve si el usuario tiene 2FA activado o no
       tags:
         - 2FA
       security:
@@ -1281,9 +1869,34 @@ paths:
                 properties:
                   enabled:
                     type: boolean
+                    description: true si 2FA está activado
                     example: false
         '401':
           description: No autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: AUTHENTICATION_REQUIRED
+                  message:
+                    type: string
+                    example: Autenticación requerida
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 2FA_STATUS_FAILED
+                  message:
+                    type: string
+                    example: Error al obtener el estado de 2FA
   /api/v1/auth/2fa/setup:
     post:
       summary: Inicia la configuración de 2FA
@@ -1457,7 +2070,11 @@ paths:
   /api/v1/auth/2fa/verify:
     post:
       summary: Verifica el código 2FA durante el login
-      description: Canjea el tempToken + código OTP por tokens de acceso
+      description: >
+        Canjea el tempToken + código OTP por tokens de acceso.
+
+        Este endpoint se usa después de que login devuelve 202 con
+        require2FA=true.
       tags:
         - 2FA
       requestBody:
@@ -1472,7 +2089,8 @@ paths:
               properties:
                 tempToken:
                   type: string
-                  description: Token temporal recibido en el login
+                  description: Token temporal recibido en el login (expira en 5 min)
+                  example: abc123def456
                 code:
                   type: string
                   description: Código OTP de 6 dígitos o código de backup
@@ -1487,11 +2105,220 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Login successful
+                    example: Login exitoso
                   accessToken:
                     type: string
+                    description: Token de acceso JWT
                   refreshToken:
                     type: string
+                    description: Token de actualización
+        '400':
+          description: Campos faltantes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - MISSING_TEMP_TOKEN
+                      - MISSING_CODE
+                    example: MISSING_CODE
+                  message:
+                    type: string
+                    example: Se necesita un código de verificación
         '401':
           description: Código o token inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_CODE
+                  message:
+                    type: string
+                    example: Código de verificación inválido
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: Usuario no encontrado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 2FA_VERIFY_FAILED
+                  message:
+                    type: string
+                    example: Error al verificar el código 2FA
+  /api/v1/auth/upload/presigned-url:
+    get:
+      summary: Obtiene una URL prefirmada para subir archivos a S3
+      description: |
+        Genera una URL prefirmada de S3 para subida directa desde el cliente.
+        La URL expira en 60 segundos.
+        Para certificaciones, valida el límite del plan del usuario.
+      tags:
+        - Upload
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: fileName
+          required: true
+          schema:
+            type: string
+          description: Nombre del archivo a subir
+          example: mi_certificado.pdf
+        - in: query
+          name: fileType
+          required: true
+          schema:
+            type: string
+          description: Tipo MIME del archivo
+          example: application/pdf
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+            enum:
+              - avatar
+              - certification
+              - banner
+            default: avatar
+          description: >-
+            Categoría del archivo (determina tipos permitidos y carpeta de
+            destino)
+      responses:
+        '200':
+          description: URL prefirmada generada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl:
+                    type: string
+                    description: URL prefirmada para subir el archivo (expira en 60s)
+                    example: https://bucket.s3.amazonaws.com/...
+                  finalUrl:
+                    type: string
+                    description: URL pública final del archivo en el CDN
+                    example: https://cdn.example.com/avatars/1234567890-mi_avatar.jpg
+                  fileName:
+                    type: string
+                    description: Nombre único del archivo en S3
+                    example: avatars/1234567890-mi_avatar.jpg
+        '400':
+          description: Parámetros inválidos o límite de plan excedido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Faltan parámetros fileName y fileType son requeridos
+        '401':
+          description: No autenticado
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Error al generar URL de subida
+  /api/v1/auth/upload/certification/{certificationId}:
+    delete:
+      summary: Elimina una certificación del perfil
+      description: >
+        Elimina una certificación del perfil del usuario autenticado.
+
+        Esta acción:
+
+        - Elimina el archivo de S3
+
+        - Decrementa el contador de certificados en Space (libera cuota del
+        plan)
+
+        - Elimina la entrada del array de certificaciones en el perfil
+      tags:
+        - Upload
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: certificationId
+          required: true
+          schema:
+            type: string
+          description: ID de MongoDB de la certificación a eliminar
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Certificación eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Certificación eliminada correctamente
+                  certifications:
+                    type: array
+                    description: Array actualizado de certificaciones del usuario
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        name:
+                          type: string
+                        url:
+                          type: string
+        '401':
+          description: No autenticado
+        '404':
+          description: Perfil o certificación no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - Perfil no encontrado
+                      - Certificación no encontrada
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Error al eliminar la certificación
 tags: []

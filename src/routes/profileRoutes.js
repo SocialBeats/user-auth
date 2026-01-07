@@ -15,30 +15,72 @@ const router = express.Router();
  *     tags:
  *       - Internal
  *     summary: Actualizar estado de verificación (Interno)
- *     description: Endpoint protegido por API Key interna para actualizar estado de verificación desde FaaS/Webhooks.
+ *     description: |
+ *       Endpoint protegido por API Key interna para actualizar estado de verificación desde FaaS/Webhooks.
+ *       Usado por el sistema de verificación de identidad (Persona).
  *     parameters:
+ *       - in: header
+ *         name: x-internal-api-key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: API Key interna para autenticación entre microservicios
  *       - in: path
  *         name: userId
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID del usuario (MongoDB ObjectId)
+ *         example: 507f1f77bcf86cd799439011
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
  *                 enum: [VERIFICADO, PENDING, REJECTED]
+ *                 description: Nuevo estado de verificación
  *               provider_id:
  *                 type: string
+ *                 description: ID del proveedor de verificación (Persona)
  *     responses:
  *       200:
- *         description: Status updated
+ *         description: Estado actualizado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Estado de verificación actualizado correctamente
  *       401:
- *         description: Invalid Internal API Key
+ *         description: API Key interna inválida o faltante
+ *       404:
+ *         description: Perfil de usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Perfil de usuario no encontrado
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Error interno del servidor
  */
 router.put(
   '/internal/:userId/verification-status',
@@ -249,55 +291,19 @@ router.delete('/me', profileController.deleteMyProfile);
  *         schema:
  *           type: integer
  *           default: 1
+ *           minimum: 1
  *         description: Número de página
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 20
+ *           minimum: 1
+ *           maximum: 100
  *         description: Número de resultados por página
  *     responses:
  *       200:
- *         description: Lista de perfiles
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 profiles:
- *                   type: array
- *                   items:
- *                     type: object
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     pages:
- *                       type: integer
- */
-router.get('/', profileController.getAllProfiles);
-
-/**
- * @openapi
- * /api/v1/profile/search:
- *   get:
- *     tags:
- *       - Profile
- *     summary: Buscar perfiles
- *     description: Busca perfiles por username, nombre completo o email
- *     parameters:
- *       - in: query
- *         name: q
- *         required: true
- *         schema:
- *           type: string
- *         description: Término de búsqueda (username, email, nombre)
- *     responses:
- *       200:
- *         description: Lista de perfiles encontrados
+ *         description: Lista de perfiles obtenida exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -316,10 +322,86 @@ router.get('/', profileController.getAllProfiles);
  *                         type: string
  *                       avatar:
  *                         type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 150
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     pages:
+ *                       type: integer
+ *                       example: 8
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *       500:
+ *         description: Error del servidor
+ */
+router.get('/', profileController.getAllProfiles);
+
+/**
+ * @openapi
+ * /api/v1/profile/search:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Buscar perfiles
+ *     description: Busca perfiles por username, nombre completo o email
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *         description: Término de búsqueda (username, email, nombre)
+ *         example: john
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles encontrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profiles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       userId:
+ *                         type: string
+ *                         example: 507f1f77bcf86cd799439011
+ *                       username:
+ *                         type: string
+ *                         example: john_doe
+ *                       full_name:
+ *                         type: string
+ *                         example: John Doe
+ *                       avatar:
+ *                         type: string
+ *                         example: https://cdn.example.com/avatars/john.jpg
  *                       email:
  *                         type: string
+ *                         example: john@example.com
  *       400:
  *         description: Término de búsqueda faltante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: MISSING_SEARCH_TERM
+ *                 message:
+ *                   type: string
+ *                   example: El término de búsqueda (q) es requerido
+ *       500:
+ *         description: Error del servidor
  */
 router.get('/search', profileController.searchProfiles);
 
@@ -330,7 +412,9 @@ router.get('/search', profileController.searchProfiles);
  *     tags:
  *       - Profile
  *     summary: Obtener perfil por userId o username
- *     description: Obtiene el perfil público de un usuario. Detecta automáticamente si el parámetro es un userId (ObjectId de 24 caracteres) o un username.
+ *     description: |
+ *       Obtiene el perfil público de un usuario.
+ *       Detecta automáticamente si el parámetro es un userId (ObjectId de 24 caracteres hex) o un username.
  *     parameters:
  *       - in: path
  *         name: identifier
@@ -338,6 +422,7 @@ router.get('/search', profileController.searchProfiles);
  *         schema:
  *           type: string
  *         description: userId (ObjectId) o username del usuario
+ *         example: john_doe
  *     responses:
  *       200:
  *         description: Perfil obtenido exitosamente
@@ -348,16 +433,25 @@ router.get('/search', profileController.searchProfiles);
  *               properties:
  *                 userId:
  *                   type: string
+ *                   example: 507f1f77bcf86cd799439011
  *                 username:
  *                   type: string
+ *                   example: john_doe
  *                 email:
  *                   type: string
+ *                   example: john@example.com
  *                 about_me:
  *                   type: string
+ *                   example: Soy un beatmaker de Madrid
  *                 avatar:
  *                   type: string
+ *                   example: https://cdn.example.com/avatars/john.jpg
+ *                 banner:
+ *                   type: string
+ *                   example: https://cdn.example.com/banners/john.jpg
  *                 full_name:
  *                   type: string
+ *                   example: John Doe
  *                 contact:
  *                   type: object
  *                 studies:
@@ -368,8 +462,28 @@ router.get('/search', profileController.searchProfiles);
  *                     type: string
  *                 certifications:
  *                   type: array
+ *                 identityVerified:
+ *                   type: boolean
+ *                   example: false
+ *                 verificationLevel:
+ *                   type: string
+ *                   enum: [none, verified]
+ *                   example: none
  *       404:
  *         description: Perfil no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: PROFILE_NOT_FOUND
+ *                 message:
+ *                   type: string
+ *                   example: Perfil no encontrado
+ *       500:
+ *         description: Error del servidor
  */
 router.get('/:identifier', profileController.getProfileByIdentifier);
 

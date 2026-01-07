@@ -9,6 +9,7 @@ const router = express.Router();
  * /api/v1/auth/2fa/status:
  *   get:
  *     summary: Obtiene el estado de 2FA del usuario
+ *     description: Devuelve si el usuario tiene 2FA activado o no
  *     tags: [2FA]
  *     security:
  *       - bearerAuth: []
@@ -22,9 +23,34 @@ const router = express.Router();
  *               properties:
  *                 enabled:
  *                   type: boolean
+ *                   description: true si 2FA está activado
  *                   example: false
  *       401:
  *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: AUTHENTICATION_REQUIRED
+ *                 message:
+ *                   type: string
+ *                   example: Autenticación requerida
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 2FA_STATUS_FAILED
+ *                 message:
+ *                   type: string
+ *                   example: Error al obtener el estado de 2FA
  */
 router.get('/status', requireBeatmaker, twoFactorController.get2FAStatus);
 
@@ -231,7 +257,9 @@ router.post(
  * /api/v1/auth/2fa/verify:
  *   post:
  *     summary: Verifica el código 2FA durante el login
- *     description: Canjea el tempToken + código OTP por tokens de acceso
+ *     description: |
+ *       Canjea el tempToken + código OTP por tokens de acceso.
+ *       Este endpoint se usa después de que login devuelve 202 con require2FA=true.
  *     tags: [2FA]
  *     requestBody:
  *       required: true
@@ -245,7 +273,8 @@ router.post(
  *             properties:
  *               tempToken:
  *                 type: string
- *                 description: Token temporal recibido en el login
+ *                 description: Token temporal recibido en el login (expira en 5 min)
+ *                 example: abc123def456
  *               code:
  *                 type: string
  *                 description: Código OTP de 6 dígitos o código de backup
@@ -260,13 +289,66 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Login successful
+ *                   example: Login exitoso
  *                 accessToken:
  *                   type: string
+ *                   description: Token de acceso JWT
  *                 refreshToken:
  *                   type: string
+ *                   description: Token de actualización
+ *       400:
+ *         description: Campos faltantes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   enum: [MISSING_TEMP_TOKEN, MISSING_CODE]
+ *                   example: MISSING_CODE
+ *                 message:
+ *                   type: string
+ *                   example: Se necesita un código de verificación
  *       401:
  *         description: Código o token inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: INVALID_CODE
+ *                 message:
+ *                   type: string
+ *                   example: Código de verificación inválido
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: USER_NOT_FOUND
+ *                 message:
+ *                   type: string
+ *                   example: Usuario no encontrado
+ *       500:
+ *         description: Error del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 2FA_VERIFY_FAILED
+ *                 message:
+ *                   type: string
+ *                   example: Error al verificar el código 2FA
  */
 router.post('/verify', twoFactorController.verify2FA);
 
