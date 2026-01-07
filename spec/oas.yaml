@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Users and Authentication Microservice
-  version: v0.0.3
+  version: v1.0.5
   description: This is an OAS description of this Microservice REST API
 servers:
   - url: http://localhost:3000
